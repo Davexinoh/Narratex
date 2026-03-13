@@ -1,4 +1,4 @@
-fetch("http://localhost:10000/api/narratives")
+fetch("https://narratex.onrender.com/api/narratives")
 .then(response => response.json())
 .then(data => {
 

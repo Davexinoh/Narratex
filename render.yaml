@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: narratex-api
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python backend/api.py
+    plan: free

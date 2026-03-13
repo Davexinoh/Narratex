@@ -1,10 +1,10 @@
-fetch("https://narratex.onrender.com/api/narratives")
-.then(response => response.json())
-.then(data => {
+const API_URL = "https://narratex.onrender.com/api/narratives"
 
-if(!data.narratives){
-throw new Error("Invalid API response")
-}
+fetch(API_URL)
+
+.then(response => response.json())
+
+.then(data => {
 
 const container = document.getElementById("cards")
 const heatmap = document.getElementById("heatmap")
@@ -18,18 +18,19 @@ let tokenScores = []
 data.narratives.forEach(narrative => {
 
 const card = document.createElement("div")
+
 card.className = "card"
 
 card.innerHTML = `
-<h2>${narrative.name}</h2>
-<p><strong>Confidence:</strong> ${narrative.confidence}%</p>
-<p><strong>Signal:</strong> ${narrative.signal}</p>
-<p><strong>Tokens:</strong> ${narrative.tokens.join(", ")}</p>
+<h3>${narrative.name}</h3>
+<p>Confidence: ${narrative.confidence}%</p>
+<p>Tokens: ${narrative.tokens.join(", ")}</p>
 `
 
 container.appendChild(card)
 
 const heat = document.createElement("div")
+
 heat.className = "heat"
 
 heat.innerHTML = `${narrative.name} — ${narrative.confidence}%`
@@ -56,22 +57,19 @@ data: {
 labels: tokenLabels,
 
 datasets: [{
+
 label: "Token Narrative Strength",
+
 data: tokenScores,
+
 backgroundColor: "rgba(240,185,11,0.2)",
+
 borderColor: "#f0b90b"
+
 }]
 
 }
 
 })
-
-})
-.catch(err => {
-
-document.getElementById("cards").innerHTML =
-"<p>Unable to load Narratex data</p>"
-
-console.error(err)
 
 })

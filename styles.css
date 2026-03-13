@@ -1,32 +1,21 @@
 body{
-background:linear-gradient(180deg,#0b0f19,#111827);
+background:#0f172a;
 color:white;
 font-family:Arial;
 padding:40px;
 }
 
-h1{
-font-size:32px;
-margin-bottom:20px;
-}
-
 #cards{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
 gap:20px;
-margin-bottom:40px;
+margin-top:20px;
 }
 
 .card{
-background:#111827;
+background:#1e293b;
 padding:20px;
 border-radius:10px;
-border:1px solid #1f2937;
-transition:transform .2s;
-}
-
-.card:hover{
-transform:scale(1.03);
 }
 
 #heatmap{
@@ -39,7 +28,7 @@ margin-top:20px;
 .heat{
 background:#f0b90b;
 color:black;
-padding:12px;
+padding:10px;
 border-radius:6px;
 font-weight:bold;
 text-align:center;

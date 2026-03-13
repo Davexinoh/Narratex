@@ -28,3 +28,34 @@ container.appendChild(card)
 })
 
 })
+
+const ctx = document.getElementById("timelineChart")
+
+new Chart(ctx, {
+
+type: "line",
+
+data: {
+
+labels: ["10:00","11:00","12:00","13:00"],
+
+datasets: [{
+label: "AI Infrastructure Mentions",
+
+data: [80,110,160,210],
+
+borderColor: "#f0b90b",
+backgroundColor: "rgba(240,185,11,0.2)",
+
+tension: 0.4
+}]
+
+},
+
+options: {
+
+responsive: true
+
+}
+
+})

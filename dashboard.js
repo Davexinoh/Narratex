@@ -1,10 +1,10 @@
-const API_URL = "https://narratex.onrender.com/api/narratives"
+const API = "https://narratex.onrender.com/api/narratives"
 
-fetch(API_URL)
+async function loadNarratives(){
 
-.then(response => response.json())
+const response = await fetch(API)
 
-.then(data => {
+const data = await response.json()
 
 const container = document.getElementById("cards")
 const heatmap = document.getElementById("heatmap")
@@ -15,16 +15,16 @@ heatmap.innerHTML = ""
 let tokenLabels = []
 let tokenScores = []
 
-data.narratives.forEach(narrative => {
+data.narratives.forEach(n => {
 
 const card = document.createElement("div")
 
 card.className = "card"
 
 card.innerHTML = `
-<h3>${narrative.name}</h3>
-<p>Confidence: ${narrative.confidence}%</p>
-<p>Tokens: ${narrative.tokens.join(", ")}</p>
+<h3>${n.name}</h3>
+<p>Confidence: ${n.confidence}%</p>
+<p>Tokens: ${n.tokens.join(", ")}</p>
 `
 
 container.appendChild(card)
@@ -33,14 +33,14 @@ const heat = document.createElement("div")
 
 heat.className = "heat"
 
-heat.innerHTML = `${narrative.name} — ${narrative.confidence}%`
+heat.innerHTML = `${n.name} — ${n.confidence}%`
 
 heatmap.appendChild(heat)
 
-narrative.tokens.forEach(token => {
+n.tokens.forEach(token => {
 
 tokenLabels.push(token)
-tokenScores.push(narrative.confidence)
+tokenScores.push(n.confidence)
 
 })
 
@@ -48,28 +48,19 @@ tokenScores.push(narrative.confidence)
 
 const radar = document.getElementById("tokenRadar")
 
-new Chart(radar, {
-
-type: "radar",
-
-data: {
-
-labels: tokenLabels,
-
-datasets: [{
-
-label: "Token Narrative Strength",
-
-data: tokenScores,
-
-backgroundColor: "rgba(240,185,11,0.2)",
-
-borderColor: "#f0b90b"
-
+new Chart(radar,{
+type:"radar",
+data:{
+labels:tokenLabels,
+datasets:[{
+label:"Token Narrative Strength",
+data:tokenScores,
+backgroundColor:"rgba(240,185,11,0.2)",
+borderColor:"#f0b90b"
 }]
+}
+})
 
 }
 
-})
-
-})
+loadNarratives()

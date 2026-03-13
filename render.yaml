@@ -3,5 +3,6 @@ services:
     name: narratex-api
     runtime: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn backend.api:app
+    startCommand: gunicorn api:app
     plan: free
+    rootDir: backend

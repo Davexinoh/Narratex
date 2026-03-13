@@ -1,8 +1,10 @@
-fetch("../data/narratives.json")
+fetch("http://localhost:10000/api/narratives")
 .then(response => response.json())
 .then(data => {
 
 const container = document.getElementById("cards")
+
+container.innerHTML = ""
 
 data.narratives.forEach(narrative => {
 
@@ -13,12 +15,6 @@ card.innerHTML = `
 <h2>${narrative.name}</h2>
 
 <p><strong>Confidence:</strong> ${narrative.confidence}%</p>
-
-<p><strong>Mentions Growth:</strong> ${narrative.mentions_growth}%</p>
-
-<p><strong>Dev Activity:</strong> ${narrative.dev_growth}%</p>
-
-<p><strong>Volume Growth:</strong> ${narrative.volume_growth}%</p>
 
 <p><strong>Tokens:</strong> ${narrative.tokens.join(", ")}</p>
 `

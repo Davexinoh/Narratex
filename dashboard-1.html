@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Narratex — Narrative Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <!-- Bug fix #4: Loading overlay -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p>Scanning narratives…</p>
+  </div>
+
+  <!-- Bug fix #1: Error banner -->
+  <div id="error-banner">
+    <span>⚠ Failed to load data:</span>
+    <span id="error-message"></span>
+    <button onclick="loadNarratives()">Retry</button>
+  </div>
+
+  <header>
+    <div class="logo">NARRATEX</div>
+    <p class="tagline">Discover market narratives before they trend</p>
+  </header>
+
+  <main>
+
+    <section class="chart-section">
+      <h2><span class="section-num">01</span> Narrative Timeline</h2>
+      <p class="section-desc">Momentum confidence scores across active narratives</p>
+      <div class="chart-box">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <h2><span class="section-num">02</span> Narrative Heatmap</h2>
+      <p class="section-desc">Color-coded by confidence — green high, amber mid, red low</p>
+      <div id="heatmap"></div>
+    </section>
+
+    <section class="chart-section">
+      <h2><span class="section-num">03</span> Trending Tokens Radar</h2>
+      <p class="section-desc">Top 10 tokens by narrative strength (deduplicated)</p>
+      <div class="chart-box radar-box">
+        <canvas id="tokenRadar"></canvas>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <h2><span class="section-num">04</span> Active Narratives</h2>
+      <p class="section-desc">Live narrative clusters with associated tokens</p>
+      <div id="cards"></div>
+    </section>
+
+  </main>
+
+  <script src="dashboard.js"></script>
+
+</body>
+
+</html>

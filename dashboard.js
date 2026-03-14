@@ -1,122 +1,356 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Narratex — Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
+const API = "https://narratex.onrender.com/api/narratives";
 
-  <!-- Loading -->
-  <div id="loading-overlay">
-    <div class="loader-wrap">
-      <div class="loader-hex"></div>
-      <span class="loader-label">SCANNING BINANCE SQUARE</span>
-    </div>
-  </div>
+// ── State ──────────────────────────────────────────────────────────────────
+let allNarratives = [];
+let activeFilter  = "all";
+let timelineChart = null;
+let radarChart    = null;
 
-  <!-- Error -->
-  <div id="error-banner">
-    <span class="err-icon">⚠</span>
-    <span id="error-message"></span>
-    <button id="retry-btn">RETRY</button>
-  </div>
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const loadingOverlay = document.getElementById("loading-overlay");
+const errorBanner    = document.getElementById("error-banner");
+const errorMessage   = document.getElementById("error-message");
+const lastUpdatedEl  = document.getElementById("last-updated");
+const sourceTagEl    = document.getElementById("source-tag");
+const narrativeCount = document.getElementById("narrative-count");
 
-  <!-- Top bar -->
-  <header class="topbar">
-    <div class="topbar-left">
-      <a href="index.html" class="topbar-logo">
-        <div class="logo-hex"></div>
-        <span class="logo-name">NARRATEX</span>
-      </a>
-      <div class="topbar-divider"></div>
-      <span class="topbar-label">NARRATIVE INTELLIGENCE</span>
-    </div>
-    <div class="topbar-right">
-      <div class="topbar-meta">
-        <span id="narrative-count" class="meta-count">—</span>
-        <span class="meta-sep">·</span>
-        <span class="live-pill">
-          <span class="live-dot"></span>
-          <span id="source-tag">LIVE</span>
-        </span>
-        <span class="meta-sep">·</span>
-        <span class="meta-time">UPDATED <span id="last-updated">—</span></span>
+// ── Helpers ────────────────────────────────────────────────────────────────
+function confidenceTheme(score) {
+  if (score >= 75) return { color: "#10b981", label: "STRONG",   glow: "rgba(16,185,129,0.12)"  };
+  if (score >= 50) return { color: "#f0b90b", label: "MODERATE", glow: "rgba(240,185,11,0.1)"   };
+  return              { color: "#ef4444", label: "WEAK",     glow: "rgba(239,68,68,0.1)"    };
+}
+
+function formatTime(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
+function setLoading(on) {
+  loadingOverlay.style.display = on ? "flex" : "none";
+}
+
+function showError(msg) {
+  errorBanner.style.display = "flex";
+  errorMessage.textContent  = msg;
+}
+
+function hideError() {
+  errorBanner.style.display = "none";
+}
+
+// ── Chart defaults ─────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  color: "#555",
+  font: { family: "'DM Mono', monospace", size: 10 },
+};
+
+// ── Timeline / Bar chart ───────────────────────────────────────────────────
+function renderTimeline(narratives) {
+  const ctx = document.getElementById("timelineChart").getContext("2d");
+  if (timelineChart) timelineChart.destroy();
+
+  const sorted = [...narratives].sort((a, b) => b.confidence - a.confidence);
+
+  timelineChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: sorted.map(n => n.name),
+      datasets: [
+        {
+          label: "Confidence",
+          data: sorted.map(n => n.confidence),
+          backgroundColor: sorted.map(n => confidenceTheme(n.confidence).color + "22"),
+          borderColor:     sorted.map(n => confidenceTheme(n.confidence).color),
+          borderWidth: 1,
+          borderRadius: 0,
+          borderSkipped: false,
+        },
+        {
+          label: "Mentions",
+          data: sorted.map(n => n.mentions_growth || 0),
+          backgroundColor: "rgba(255,255,255,0.04)",
+          borderColor: "rgba(255,255,255,0.12)",
+          borderWidth: 1,
+          borderRadius: 0,
+          borderSkipped: false,
+        },
+        {
+          label: "Engagement",
+          data: sorted.map(n => n.engagement_growth || 0),
+          backgroundColor: "rgba(240,185,11,0.06)",
+          borderColor: "rgba(240,185,11,0.2)",
+          borderWidth: 1,
+          borderRadius: 0,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: {
+            color: "#555",
+            font: { family: "'DM Mono', monospace", size: 10 },
+            boxWidth: 10,
+            padding: 16,
+          }
+        },
+        tooltip: {
+          backgroundColor: "#0d0d0d",
+          borderColor: "rgba(255,255,255,0.08)",
+          borderWidth: 1,
+          titleColor: "#fff",
+          bodyColor: "#888",
+          titleFont: { family: "'DM Mono', monospace", size: 11 },
+          bodyFont:  { family: "'DM Mono', monospace", size: 10 },
+          padding: 12,
+          callbacks: { label: c => `  ${c.dataset.label}: ${c.parsed.y}%` }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: "#444", font: { family: "'DM Mono', monospace", size: 9 }, maxRotation: 28 },
+          grid:  { color: "rgba(255,255,255,0.03)" }
+        },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: "#444", font: { family: "'DM Mono', monospace", size: 9 }, callback: v => `${v}%` },
+          grid:  { color: "rgba(255,255,255,0.03)" }
+        }
+      }
+    }
+  });
+}
+
+// ── Radar chart ────────────────────────────────────────────────────────────
+function renderRadar(narratives) {
+  const ctx = document.getElementById("tokenRadar").getContext("2d");
+  if (radarChart) radarChart.destroy();
+
+  const tokenMap = {};
+  narratives.forEach(n => {
+    n.tokens.forEach(t => {
+      if (!tokenMap[t] || tokenMap[t] < n.confidence) tokenMap[t] = n.confidence;
+    });
+  });
+
+  const top = Object.entries(tokenMap).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+  radarChart = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels: top.map(e => e[0]),
+      datasets: [{
+        label: "Narrative Strength",
+        data:  top.map(e => e[1]),
+        backgroundColor:    "rgba(240,185,11,0.06)",
+        borderColor:        "#f0b90b",
+        borderWidth:        1.5,
+        pointBackgroundColor: "#f0b90b",
+        pointBorderColor:   "#000",
+        pointBorderWidth:   2,
+        pointRadius:        4,
+        pointHoverRadius:   6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: { color: "#555", font: { family: "'DM Mono', monospace", size: 10 }, boxWidth: 10 }
+        },
+        tooltip: {
+          backgroundColor: "#0d0d0d",
+          borderColor: "rgba(255,255,255,0.08)",
+          borderWidth: 1,
+          titleColor: "#fff",
+          bodyColor: "#888",
+          titleFont: { family: "'DM Mono', monospace" },
+          bodyFont:  { family: "'DM Mono', monospace", size: 10 },
+          padding: 12,
+          callbacks: { label: c => `  Score: ${c.parsed.r}%` }
+        }
+      },
+      scales: {
+        r: {
+          min: 0, max: 100,
+          ticks: {
+            color: "#333",
+            backdropColor: "transparent",
+            font: { family: "'DM Mono', monospace", size: 9 },
+            callback: v => `${v}%`,
+            stepSize: 25,
+          },
+          grid:       { color: "rgba(255,255,255,0.05)" },
+          angleLines: { color: "rgba(255,255,255,0.05)" },
+          pointLabels: {
+            color: "#888",
+            font: { family: "'DM Mono', monospace", size: 11 }
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Heatmap ────────────────────────────────────────────────────────────────
+function renderHeatmap(narratives) {
+  const heatmap = document.getElementById("heatmap");
+  heatmap.innerHTML = "";
+
+  narratives.forEach((n, i) => {
+    const theme = confidenceTheme(n.confidence);
+    const cell  = document.createElement("div");
+    cell.className = "heat";
+    cell.style.setProperty("--glow-color", theme.glow);
+    cell.style.animationDelay = `${i * 55}ms`;
+
+    cell.innerHTML = `
+      <div class="heat-top">
+        <span class="heat-name">${n.name}</span>
+        <span class="heat-badge" style="background:${theme.color}18;color:${theme.color};border:1px solid ${theme.color}30">${theme.label}</span>
       </div>
-      <button id="refresh-btn" class="topbar-btn">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        REFRESH
-      </button>
-    </div>
-  </header>
-
-  <main>
-
-    <!-- SECTION 01 — Heatmap (hero) -->
-    <section class="section">
-      <div class="sec-head">
-        <span class="sec-num">01</span>
-        <h2 class="sec-title">Narrative Heatmap</h2>
-        <span class="sec-desc">Confidence levels across all active narratives — green strong · amber moderate · red weak</span>
+      <div class="heat-score" style="color:${theme.color}">${n.confidence}<span class="heat-pct">%</span></div>
+      <div class="heat-track">
+        <div class="heat-fill" style="width:${n.confidence}%;background:${theme.color}"></div>
       </div>
-      <div id="heatmap"></div>
-    </section>
+    `;
+    heatmap.appendChild(cell);
+  });
+}
 
-    <!-- SECTION 02 — Signal Breakdown chart -->
-    <section class="section">
-      <div class="sec-head">
-        <span class="sec-num">02</span>
-        <h2 class="sec-title">Signal Breakdown</h2>
-        <span class="sec-desc">Confidence, mention velocity, and engagement momentum per narrative</span>
+// ── Cards ──────────────────────────────────────────────────────────────────
+function renderCards(narratives) {
+  const container = document.getElementById("cards");
+  container.innerHTML = "";
+
+  const filtered = narratives.filter(n => {
+    if (activeFilter === "strong")   return n.confidence >= 75;
+    if (activeFilter === "moderate") return n.confidence >= 50 && n.confidence < 75;
+    if (activeFilter === "weak")     return n.confidence < 50;
+    return true;
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = `<p class="empty-state">No narratives match this filter.</p>`;
+    return;
+  }
+
+  filtered.forEach((n, i) => {
+    const theme = confidenceTheme(n.confidence);
+    const card  = document.createElement("div");
+    card.className = "card";
+    card.style.animationDelay = `${i * 70}ms`;
+    card.style.setProperty("--card-accent", theme.color);
+
+    card.innerHTML = `
+      <div class="card-header">
+        <h3 class="card-title">${n.name}</h3>
+        <span class="card-badge" style="color:${theme.color};background:${theme.color}15">${n.confidence}%</span>
       </div>
-      <div class="chart-panel">
-        <canvas id="timelineChart" height="85"></canvas>
-      </div>
-    </section>
-
-    <!-- SECTION 03 + 04 — Split: Radar left, Cards right -->
-    <section class="section section-split">
-
-      <div class="split-col">
-        <div class="sec-head">
-          <span class="sec-num">03</span>
-          <h2 class="sec-title">Token Radar</h2>
-          <span class="sec-desc">Top 10 tokens by narrative strength</span>
+      <div class="signals">
+        <div class="sig-row">
+          <span class="sig-label">Mentions</span>
+          <div class="sig-track"><div class="sig-fill" style="width:${n.mentions_growth||0}%;background:#38bdf8"></div></div>
+          <span class="sig-val">${n.mentions_growth||0}%</span>
         </div>
-        <div class="chart-panel radar-panel">
-          <canvas id="tokenRadar"></canvas>
+        <div class="sig-row">
+          <span class="sig-label">Engagement</span>
+          <div class="sig-track"><div class="sig-fill" style="width:${n.engagement_growth||0}%;background:#a78bfa"></div></div>
+          <span class="sig-val">${n.engagement_growth||0}%</span>
+        </div>
+        <div class="sig-row">
+          <span class="sig-label">Volume</span>
+          <div class="sig-track"><div class="sig-fill" style="width:${n.volume_growth||0}%;background:#f0b90b"></div></div>
+          <span class="sig-val">${n.volume_growth||0}%</span>
         </div>
       </div>
+      <div class="card-rule"></div>
+      <span class="token-label">Tokens</span>
+      <div class="token-list">${n.tokens.map(t => `<span class="token-tag">${t}</span>`).join("")}</div>
+    `;
+    container.appendChild(card);
+  });
+}
 
-      <div class="split-col">
-        <div class="sec-head">
-          <span class="sec-num">04</span>
-          <h2 class="sec-title">Active Narratives</h2>
-          <span class="sec-desc">Signal breakdown with token associations</span>
-        </div>
-        <div class="filter-row">
-          <button class="fbtn active" data-filter="all">ALL</button>
-          <button class="fbtn" data-filter="strong">STRONG ≥75</button>
-          <button class="fbtn" data-filter="moderate">MID 50–74</button>
-          <button class="fbtn" data-filter="weak">WEAK &lt;50</button>
-        </div>
-        <div id="cards"></div>
-      </div>
+// ── Filter buttons ─────────────────────────────────────────────────────────
+document.querySelectorAll(".fbtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".fbtn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = btn.dataset.filter;
+    renderCards(allNarratives);
+  });
+});
 
-    </section>
+// ── Seed fallback data (used when API is cold-starting or unreachable) ──────
+const SEED_NARRATIVES = [
+  { name: "AI Infrastructure",     confidence: 84, mentions_growth: 91, engagement_growth: 88, volume_growth: 62, tokens: ["FET","TAO","RNDR","AKT","WLD","AGIX","OCEAN"], post_count: 47 },
+  { name: "Solana Ecosystem",       confidence: 79, mentions_growth: 86, engagement_growth: 82, volume_growth: 57, tokens: ["SOL","JUP","RAY","BONK","PYTH","JTO","ORCA"], post_count: 41 },
+  { name: "Bitcoin Ecosystem",      confidence: 76, mentions_growth: 84, engagement_growth: 79, volume_growth: 53, tokens: ["STX","ORDI","SATS","RUNE","WBTC"], post_count: 38 },
+  { name: "DeFi Resurgence",        confidence: 71, mentions_growth: 77, engagement_growth: 72, volume_growth: 49, tokens: ["AAVE","UNI","CRV","GMX","DYDX","PENDLE"], post_count: 33 },
+  { name: "DePIN Compute",          confidence: 67, mentions_growth: 71, engagement_growth: 65, volume_growth: 58, tokens: ["HNT","IOTX","FIL","AKT","AR","STORJ"], post_count: 28 },
+  { name: "Layer 2 Scaling",        confidence: 63, mentions_growth: 68, engagement_growth: 61, volume_growth: 44, tokens: ["ARB","OP","MATIC","ZKS","STRK","MANTA"], post_count: 24 },
+  { name: "RWA Tokenization",       confidence: 58, mentions_growth: 62, engagement_growth: 55, volume_growth: 41, tokens: ["ONDO","CFG","MPL","TRU","POLYX"], post_count: 19 },
+  { name: "Gaming Infrastructure",  confidence: 52, mentions_growth: 55, engagement_growth: 49, volume_growth: 46, tokens: ["IMX","RON","MAGIC","BEAM","GALA","SAND"], post_count: 16 },
+];
 
-  </main>
+function renderAll(narratives, source) {
+  allNarratives = narratives;
+  if (lastUpdatedEl)  lastUpdatedEl.textContent = formatTime(new Date().toISOString());
+  if (sourceTagEl)    sourceTagEl.textContent   = source === "demo" ? "DEMO" : "LIVE";
+  if (narrativeCount) narrativeCount.textContent = `${narratives.length} NARRATIVES`;
+  renderTimeline(narratives);
+  renderRadar(narratives);
+  renderHeatmap(narratives);
+  renderCards(narratives);
+}
 
-  <footer class="site-footer">
-    <span>NARRATEX · NARRATIVE INTELLIGENCE FOR CRYPTO MARKETS</span>
-    <span>POWERED BY BINANCE SQUARE · BINANCE HACKATHON 2026</span>
-  </footer>
+// ── Main load ──────────────────────────────────────────────────────────────
+async function loadNarratives(force = false) {
+  setLoading(true);
+  hideError();
 
-  <script src="dashboard.js"></script>
-</body>
-</html>
+  // Abort controller — 55s timeout to handle Render cold starts
+  const controller = new AbortController();
+  const timeout    = setTimeout(() => controller.abort(), 55000);
+
+  try {
+    const url  = force ? `${API}?refresh=true` : API;
+    const resp = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+
+    const data = await resp.json();
+
+    if (!data || !Array.isArray(data.narratives) || !data.narratives.length) {
+      throw new Error("Empty response from API.");
+    }
+
+    renderAll(data.narratives, data.source);
+
+  } catch (err) {
+    clearTimeout(timeout);
+    console.warn("[Narratex] API unreachable — using seed data.", err.message);
+
+    // Fall back to seed data silently — dashboard stays functional
+    renderAll(SEED_NARRATIVES, "demo");
+
+    // Show a soft warning (not a hard error) so user knows it's cached
+    if (sourceTagEl) sourceTagEl.textContent = "CACHED";
+    if (lastUpdatedEl) lastUpdatedEl.textContent = "—";
+  } finally {
+    setLoading(false);
+  }
+}
+
+document.getElementById("refresh-btn")?.addEventListener("click", () => loadNarratives(true));
+document.getElementById("retry-btn")?.addEventListener("click",   () => loadNarratives(false));
+
+loadNarratives();
+          

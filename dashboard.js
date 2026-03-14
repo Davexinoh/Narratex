@@ -39,7 +39,105 @@ function hideError() {
   errorBanner.style.display = "none";
 }
 
-// ── Chart defaults ─────────────────────────────────────────────────────────
+// ── Lifecycle stage assignment ─────────────────────────────────────────────
+// Assigns each narrative a lifecycle stage based on confidence + momentum proxy
+function getLifecycleStage(n) {
+  const score = n.confidence;
+  const mentions = n.mentions_growth || 0;
+  // Use mentions velocity as a proxy for acceleration
+  if (score < 55)              return "declining";
+  if (score >= 55 && score < 68 && mentions >= 60) return "emerging";
+  if (score >= 55 && score < 68)                   return "declining";
+  if (score >= 68 && score < 78) return "rising";
+  if (score >= 78)               return "peak";
+  return "rising";
+}
+
+function lifecycleArrow(stage) {
+  const map = {
+    emerging:  { arrow: "↗",  color: "#38bdf8" },
+    rising:    { arrow: "↑",  color: "#10b981" },
+    peak:      { arrow: "▲",  color: "#f0b90b" },
+    declining: { arrow: "↘",  color: "#ef4444" },
+  };
+  return map[stage] || map.rising;
+}
+
+// ── Leaderboard ────────────────────────────────────────────────────────────
+function renderLeaderboard(narratives) {
+  const container = document.getElementById("leaderboard");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const sorted = [...narratives].sort((a, b) => b.confidence - a.confidence);
+
+  sorted.forEach((n, i) => {
+    const theme = confidenceTheme(n.confidence);
+    const stage = getLifecycleStage(n);
+    const lc    = lifecycleArrow(stage);
+    const isTop = i < 3;
+
+    const row = document.createElement("div");
+    row.className = "lb-row";
+    row.style.setProperty("--lb-color", theme.color);
+    row.style.animationDelay = `${i * 60}ms`;
+
+    row.innerHTML = `
+      <span class="lb-rank ${isTop ? "top" : ""}">${i + 1}</span>
+      <div class="lb-info">
+        <span class="lb-name">${n.name}</span>
+        <span class="lb-tokens">${n.tokens.slice(0, 4).join(" · ")}</span>
+      </div>
+      <div class="lb-bar-wrap">
+        <div class="lb-bar" style="width:${n.confidence}%;background:${theme.color}"></div>
+      </div>
+      <span class="lb-score" style="color:${theme.color}">
+        ${n.confidence}<span style="font-size:11px;opacity:0.6">%</span>
+        <span class="stage-item-arrow" style="color:${lc.color};font-size:13px;margin-left:4px">${lc.arrow}</span>
+      </span>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ── Lifecycle Tracker ──────────────────────────────────────────────────────
+function renderLifecycle(narratives) {
+  const stages = ["emerging", "rising", "peak", "declining"];
+
+  // Clear all stage item containers
+  stages.forEach(s => {
+    const el = document.querySelector(`#stage-${s} .stage-items`);
+    if (el) el.innerHTML = "";
+  });
+
+  narratives.forEach((n, i) => {
+    const stage = getLifecycleStage(n);
+    const lc    = lifecycleArrow(stage);
+    const theme = confidenceTheme(n.confidence);
+    const container = document.querySelector(`#stage-${stage} .stage-items`);
+    if (!container) return;
+
+    const item = document.createElement("div");
+    item.className = "stage-item";
+    item.style.animationDelay = `${i * 50}ms`;
+    item.innerHTML = `
+      <span class="stage-item-name">${n.name}</span>
+      <span class="stage-item-score" style="color:${lc.color}">${n.confidence}%</span>
+      <span class="stage-item-arrow" style="color:${lc.color}">${lc.arrow} ${stage.toUpperCase()}</span>
+    `;
+    container.appendChild(item);
+  });
+
+  // Show empty state for any stage with no narratives
+  stages.forEach(s => {
+    const el = document.querySelector(`#stage-${s} .stage-items`);
+    if (el && el.children.length === 0) {
+      el.innerHTML = `<div class="stage-item"><span class="stage-item-name" style="color:var(--muted)">—</span></div>`;
+    }
+  });
+}
+
+
 const CHART_DEFAULTS = {
   color: "#555",
   font: { family: "'DM Mono', monospace", size: 10 },
@@ -304,6 +402,8 @@ function renderAll(narratives, source) {
   if (lastUpdatedEl)  lastUpdatedEl.textContent = formatTime(new Date().toISOString());
   if (sourceTagEl)    sourceTagEl.textContent   = source === "demo" ? "DEMO" : "LIVE";
   if (narrativeCount) narrativeCount.textContent = `${narratives.length} NARRATIVES`;
+  renderLeaderboard(narratives);
+  renderLifecycle(narratives);
   renderTimeline(narratives);
   renderRadar(narratives);
   renderHeatmap(narratives);
@@ -353,4 +453,3 @@ document.getElementById("refresh-btn")?.addEventListener("click", () => loadNarr
 document.getElementById("retry-btn")?.addEventListener("click",   () => loadNarratives(false));
 
 loadNarratives();
-          

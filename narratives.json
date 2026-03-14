@@ -1,0 +1,84 @@
+{
+  "narratives": [
+    {
+      "name": "AI Infrastructure",
+      "confidence": 84,
+      "mentions_growth": 91.0,
+      "engagement_growth": 88.0,
+      "volume_growth": 62.0,
+      "tokens": ["FET", "TAO", "RNDR", "AKT", "WLD", "AGIX", "OCEAN"],
+      "post_count": 47,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "Solana Ecosystem",
+      "confidence": 79,
+      "mentions_growth": 86.0,
+      "engagement_growth": 82.0,
+      "volume_growth": 57.0,
+      "tokens": ["SOL", "JUP", "RAY", "BONK", "PYTH", "JTO", "ORCA"],
+      "post_count": 41,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "Bitcoin Ecosystem",
+      "confidence": 76,
+      "mentions_growth": 84.0,
+      "engagement_growth": 79.0,
+      "volume_growth": 53.0,
+      "tokens": ["STX", "ORDI", "SATS", "RUNE", "WBTC"],
+      "post_count": 38,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "DeFi Resurgence",
+      "confidence": 71,
+      "mentions_growth": 77.0,
+      "engagement_growth": 72.0,
+      "volume_growth": 49.0,
+      "tokens": ["AAVE", "UNI", "CRV", "GMX", "DYDX", "PENDLE"],
+      "post_count": 33,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "DePIN Compute",
+      "confidence": 67,
+      "mentions_growth": 71.0,
+      "engagement_growth": 65.0,
+      "volume_growth": 58.0,
+      "tokens": ["HNT", "IOTX", "FIL", "AKT", "AR", "STORJ"],
+      "post_count": 28,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "Layer 2 Scaling",
+      "confidence": 63,
+      "mentions_growth": 68.0,
+      "engagement_growth": 61.0,
+      "volume_growth": 44.0,
+      "tokens": ["ARB", "OP", "MATIC", "ZKS", "STRK", "MANTA"],
+      "post_count": 24,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "RWA Tokenization",
+      "confidence": 58,
+      "mentions_growth": 62.0,
+      "engagement_growth": 55.0,
+      "volume_growth": 41.0,
+      "tokens": ["ONDO", "CFG", "MPL", "TRU", "POLYX"],
+      "post_count": 19,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    },
+    {
+      "name": "Gaming Infrastructure",
+      "confidence": 52,
+      "mentions_growth": 55.0,
+      "engagement_growth": 49.0,
+      "volume_growth": 46.0,
+      "tokens": ["IMX", "RON", "MAGIC", "BEAM", "GALA", "SAND"],
+      "post_count": 16,
+      "scored_at": "2025-03-13T00:00:00+00:00"
+    }
+  ]
+}

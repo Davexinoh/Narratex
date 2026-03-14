@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Narratex — Discover Market Narratives Before They Trend</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #000000;
+      --gold:    #f0b90b;
+      --text:    #ffffff;
+      --muted:   #5a5a5a;
+      --muted2:  #2a2a2a;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-mono:    'DM Mono', monospace;
+      --font-body:    'DM Sans', sans-serif;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+    .scene {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scene::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(240,185,11,0.09) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 30% at 50% 110%, rgba(240,185,11,0.05) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 48px;
+    }
+
+    .nav-logo { display: flex; align-items: center; gap: 12px; }
+
+    .nav-mark {
+      width: 30px;
+      height: 30px;
+      background: var(--gold);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .nav-name {
+      font-family: var(--font-display);
+      font-size: 20px;
+      letter-spacing: 0.12em;
+    }
+
+    .nav-tag {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px 60px;
+    }
+
+    .hero-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.32em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(72px, 13vw, 148px);
+      line-height: 0.9;
+      letter-spacing: 0.02em;
+      margin-bottom: 8px;
+    }
+
+    .hero-title .gold { color: var(--gold); }
+
+    .hero-rule {
+      width: 1px;
+      height: 48px;
+      background: linear-gradient(to bottom, var(--gold), transparent);
+      margin: 28px auto;
+    }
+
+    .hero-sub {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 380px;
+      line-height: 1.85;
+      margin-bottom: 44px;
+    }
+
+    /* Narrative ticker */
+    .ticker-wrap {
+      width: 100%;
+      overflow: hidden;
+      margin-bottom: 48px;
+      mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+    }
+
+    .ticker {
+      display: flex;
+      animation: ticker 22s linear infinite;
+      width: max-content;
+    }
+
+    .ticker-item {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      padding: 0 32px;
+      border-right: 1px solid var(--muted2);
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    .ticker-item.hot { color: var(--gold); }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    .cta-group { display: flex; align-items: center; gap: 20px; }
+
+    .cta-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--gold);
+      color: #000;
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 0.12em;
+      text-decoration: none;
+      padding: 15px 40px;
+      clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+      transition: transform 0.2s, filter 0.2s;
+    }
+
+    .cta-primary:hover { transform: scale(1.025); filter: brightness(1.08); }
+
+    .cta-ghost {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .cta-ghost:hover { color: var(--text); }
+
+    .bottom-bar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 48px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .bottom-bar span {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--muted2);
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: #10b981;
+      text-transform: uppercase;
+    }
+
+    .live-dot::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: glow 2s ease infinite;
+    }
+
+    @keyframes glow { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    @media (max-width: 640px) {
+      nav, .bottom-bar { padding: 20px 24px; }
+      .cta-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <nav>
+      <div class="nav-logo">
+        <div class="nav-mark"></div>
+        <span class="nav-name">NARRATEX</span>
+      </div>
+      <span class="nav-tag">Binance Hackathon 2025</span>
+    </nav>
+
+    <div class="hero">
+      <p class="hero-label">Narrative Intelligence Engine</p>
+
+      <h1 class="hero-title">
+        BEFORE<br><span class="gold">THEY TREND</span>
+      </h1>
+
+      <div class="hero-rule"></div>
+
+      <p class="hero-sub">
+        Narratex detects emerging crypto market narratives from real-time Binance Square signals — before the crowd arrives.
+      </p>
+
+      <div class="ticker-wrap">
+        <div class="ticker">
+          <span class="ticker-item hot">↑ AI Infrastructure · 84%</span>
+          <span class="ticker-item hot">↑ Solana Ecosystem · 79%</span>
+          <span class="ticker-item">Bitcoin Ecosystem · 76%</span>
+          <span class="ticker-item hot">↑ DeFi Resurgence · 71%</span>
+          <span class="ticker-item">DePIN Compute · 67%</span>
+          <span class="ticker-item">Layer 2 Scaling · 63%</span>
+          <span class="ticker-item">RWA Tokenization · 58%</span>
+          <span class="ticker-item">Gaming Infrastructure · 52%</span>
+          <span class="ticker-item hot">↑ AI Infrastructure · 84%</span>
+          <span class="ticker-item hot">↑ Solana Ecosystem · 79%</span>
+          <span class="ticker-item">Bitcoin Ecosystem · 76%</span>
+          <span class="ticker-item hot">↑ DeFi Resurgence · 71%</span>
+          <span class="ticker-item">DePIN Compute · 67%</span>
+          <span class="ticker-item">Layer 2 Scaling · 63%</span>
+          <span class="ticker-item">RWA Tokenization · 58%</span>
+          <span class="ticker-item">Gaming Infrastructure · 52%</span>
+        </div>
+      </div>
+
+      <div class="cta-group">
+        <a class="cta-primary" href="dashboard.html">
+          OPEN DASHBOARD
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a class="cta-ghost" href="https://github.com/Davexinoh/Narratex" target="_blank">View on GitHub →</a>
+      </div>
+    </div>
+
+    <div class="bottom-bar">
+      <span>© 2025 Narratex</span>
+      <span class="live-dot">Live · Binance Square</span>
+      <span>Built by Davexinoh</span>
+    </div>
+  </div>
+</body>
+</html>

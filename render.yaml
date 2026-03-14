@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: narratex-api
-    runtime: python
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn api:app
-    plan: free
-    rootDir: backend

@@ -7,10 +7,11 @@ Reads narrative JSON from stdin or file and prints
 a formatted intelligence briefing for OpenClaw to deliver.
 
 Usage:
-  python3 briefing.py                          # reads from stdin
-  python3 briefing.py --top 3                  # top 3 only
-  python3 briefing.py --stage emerging         # filter by stage
-  python3 briefing.py --tokens                 # token radar view
+  python3 briefing.py                    # reads from stdin
+  python3 briefing.py --top 3            # top 3 only
+  python3 briefing.py --stage emerging   # filter by stage
+  python3 briefing.py --tokens           # token radar view
+  python3 briefing.py --file data.json   # read from file
 """
 
 import json
@@ -33,14 +34,26 @@ STAGE_LABELS = {
     "declining": "DECLINING",
 }
 
+
 def confidence_bar(score, width=8):
     filled = round((score / 100) * width)
     return "█" * filled + "░" * (width - filled)
 
+
 def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
     narratives = data.get("narratives", [])
     source     = data.get("source", "unknown")
+
+    # Use the actual data timestamp — not the current wall clock time
     fetched_at = data.get("fetched_at", "")
+    if fetched_at:
+        try:
+            dt = datetime.fromisoformat(fetched_at)
+            timestamp = dt.strftime("%H:%M UTC · %b %d")
+        except ValueError:
+            timestamp = datetime.now(timezone.utc).strftime("%H:%M UTC · %b %d")
+    else:
+        timestamp = datetime.now(timezone.utc).strftime("%H:%M UTC · %b %d")
 
     if stage_filter:
         narratives = [n for n in narratives if n.get("stage") == stage_filter]
@@ -48,7 +61,6 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
     if top:
         narratives = narratives[:top]
 
-    now = datetime.now(timezone.utc).strftime("%H:%M UTC · %b %d")
     source_label = {
         "live":           "🟢 LIVE — NARRATEX API",
         "binance_square": "🟡 DIRECT — BINANCE SQUARE",
@@ -59,12 +71,11 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
     lines = []
     lines.append("📡 NARRATEX INTELLIGENCE BRIEFING")
     lines.append("━" * 38)
-    lines.append(f"{source_label}")
-    lines.append(f"Updated: {now}")
+    lines.append(source_label)
+    lines.append(f"Updated: {timestamp}")
     lines.append("")
 
     if tokens_view:
-        # Token radar view
         token_map = {}
         for n in data.get("narratives", []):
             for t in n.get("tokens", []):
@@ -79,10 +90,9 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
             lines.append(f"  {i:2}. {token:<8} {bar} {info['score']}%  ({info['narrative']})")
         lines.append("")
         lines.append("━" * 38)
-        lines.append(f"🔗 https://davexinoh.github.io/Narratex/dashboard.html")
+        lines.append("🔗 https://davexinoh.github.io/Narratex/dashboard.html")
         return "\n".join(lines)
 
-    # Main narrative briefing
     lines.append("TOP NARRATIVES")
     lines.append("")
 
@@ -102,7 +112,6 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
         lines.append(f"   Mentions +{mentions}% · Engagement +{engagement}%")
         lines.append("")
 
-    # Lifecycle summary
     lines.append("━" * 38)
     lines.append("LIFECYCLE STAGES")
 
@@ -110,7 +119,7 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
     for stage in ["emerging", "rising", "peak", "declining"]:
         group = [n["name"] for n in all_narratives if n.get("stage") == stage]
         if group:
-            icon = STAGE_ICONS[stage]
+            icon  = STAGE_ICONS[stage]
             label = STAGE_LABELS[stage]
             lines.append(f"  {icon} {label:<12} {' · '.join(group)}")
 
@@ -123,18 +132,18 @@ def format_briefing(data, top=None, stage_filter=None, tokens_view=False):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--top",    type=int,   default=None)
-    parser.add_argument("--stage",  type=str,   default=None,
+    parser.add_argument("--top",    type=int, default=None)
+    parser.add_argument("--stage",  type=str, default=None,
                         choices=["emerging", "rising", "peak", "declining"])
     parser.add_argument("--tokens", action="store_true")
-    parser.add_argument("--file",   type=str,   default=None)
+    parser.add_argument("--file",   type=str, default=None)
     args = parser.parse_args()
 
     if args.file:
         with open(args.file) as f:
             data = json.load(f)
     else:
-        raw = sys.stdin.read().strip()
+        raw  = sys.stdin.read().strip()
         data = json.loads(raw) if raw else {"narratives": [], "source": "seed"}
 
     print(format_briefing(data, top=args.top, stage_filter=args.stage, tokens_view=args.tokens))

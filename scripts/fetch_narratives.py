@@ -4,10 +4,13 @@ fetch_narratives.py
 Narratex OpenClaw Skill — Live Data Fetcher
 
 Called by OpenClaw agent to retrieve current narrative intelligence.
-Hits the Narratex API first, falls back to Binance Square direct
+Hits the Narratex API first, falls back to direct Binance Square
 collection if API is cold, falls back to seed data if both fail.
 
-Output: JSON array to stdout — OpenClaw reads this.
+Output: JSON to stdout — OpenClaw reads this.
+
+NOTE: NARRATIVE_SEEDS and NARRATIVE_TOKENS here mirror backend/seeds.py.
+If you update seeds.py, update these too.
 """
 
 import json
@@ -16,12 +19,13 @@ import urllib.request
 import urllib.error
 from datetime import datetime, timezone
 
-# ── Config ──────────────────────────────────────────────────────────────────
+# ── Config ───────────────────────────────────────────────────────────────────
 NARRATEX_API   = "https://narratex.onrender.com/api/narratives"
 BINANCE_SQUARE = "https://www.binance.com/bapi/composite/v1/public/square/feed/list"
+BINANCE_TICKER = "https://api.binance.com/api/v3/ticker/24hr?symbol={}USDT"
 TIMEOUT        = 12  # seconds
 
-# ── Narrative seed keywords ──────────────────────────────────────────────────
+# ── Narrative seeds — mirrors backend/seeds.py ────────────────────────────
 NARRATIVE_SEEDS = {
     "AI Infrastructure":     ["ai", "artificial intelligence", "llm", "gpu compute", "fetch", "rndr", "tao", "bittensor", "akt", "akash", "deai"],
     "DePIN Compute":         ["depin", "decentralized physical", "helium", "hnt", "iotex", "hivemapper", "filecoin", "compute network"],
@@ -45,27 +49,50 @@ NARRATIVE_TOKENS = {
 }
 
 SEED_DATA = [
-    {"name": "AI Infrastructure",    "confidence": 84, "mentions_growth": 91.0, "engagement_growth": 88.0, "volume_growth": 62.0, "stage": "rising",   "tokens": ["FET","TAO","RNDR","AKT","WLD","AGIX"]},
-    {"name": "Solana Ecosystem",      "confidence": 79, "mentions_growth": 86.0, "engagement_growth": 82.0, "volume_growth": 57.0, "stage": "peak",     "tokens": ["SOL","JUP","RAY","BONK","PYTH","JTO"]},
-    {"name": "Bitcoin Ecosystem",     "confidence": 76, "mentions_growth": 84.0, "engagement_growth": 79.0, "volume_growth": 53.0, "stage": "peak",     "tokens": ["STX","ORDI","SATS","RUNE","WBTC"]},
-    {"name": "DeFi Resurgence",       "confidence": 71, "mentions_growth": 77.0, "engagement_growth": 72.0, "volume_growth": 49.0, "stage": "rising",   "tokens": ["AAVE","UNI","CRV","GMX","DYDX"]},
-    {"name": "DePIN Compute",         "confidence": 67, "mentions_growth": 71.0, "engagement_growth": 65.0, "volume_growth": 58.0, "stage": "emerging", "tokens": ["HNT","IOTX","FIL","AKT","AR"]},
-    {"name": "Layer 2 Scaling",       "confidence": 63, "mentions_growth": 68.0, "engagement_growth": 61.0, "volume_growth": 44.0, "stage": "declining","tokens": ["ARB","OP","MATIC","ZKS","STRK"]},
-    {"name": "RWA Tokenization",      "confidence": 58, "mentions_growth": 62.0, "engagement_growth": 55.0, "volume_growth": 41.0, "stage": "emerging", "tokens": ["ONDO","CFG","MPL","TRU","POLYX"]},
-    {"name": "Gaming Infrastructure", "confidence": 52, "mentions_growth": 55.0, "engagement_growth": 49.0, "volume_growth": 46.0, "stage": "declining","tokens": ["IMX","RON","MAGIC","BEAM","GALA"]},
+    {"name": "AI Infrastructure",    "confidence": 84, "mentions_growth": 91.0, "engagement_growth": 88.0, "volume_growth": 62.0, "stage": "peak",      "tokens": ["FET","TAO","RNDR","AKT","WLD","AGIX"]},
+    {"name": "Solana Ecosystem",     "confidence": 79, "mentions_growth": 86.0, "engagement_growth": 82.0, "volume_growth": 57.0, "stage": "peak",      "tokens": ["SOL","JUP","RAY","BONK","PYTH","JTO"]},
+    {"name": "Bitcoin Ecosystem",    "confidence": 76, "mentions_growth": 84.0, "engagement_growth": 79.0, "volume_growth": 53.0, "stage": "peak",      "tokens": ["STX","ORDI","SATS","RUNE","WBTC"]},
+    {"name": "DeFi Resurgence",      "confidence": 71, "mentions_growth": 77.0, "engagement_growth": 72.0, "volume_growth": 49.0, "stage": "rising",    "tokens": ["AAVE","UNI","CRV","GMX","DYDX"]},
+    {"name": "DePIN Compute",        "confidence": 67, "mentions_growth": 71.0, "engagement_growth": 65.0, "volume_growth": 58.0, "stage": "emerging",  "tokens": ["HNT","IOTX","FIL","AKT","AR"]},
+    {"name": "Layer 2 Scaling",      "confidence": 63, "mentions_growth": 68.0, "engagement_growth": 61.0, "volume_growth": 44.0, "stage": "declining", "tokens": ["ARB","OP","MATIC","ZKS","STRK"]},
+    {"name": "RWA Tokenization",     "confidence": 58, "mentions_growth": 62.0, "engagement_growth": 55.0, "volume_growth": 41.0, "stage": "emerging",  "tokens": ["ONDO","CFG","MPL","TRU","POLYX"]},
+    {"name": "Gaming Infrastructure","confidence": 52, "mentions_growth": 55.0, "engagement_growth": 49.0, "volume_growth": 46.0, "stage": "declining", "tokens": ["IMX","RON","MAGIC","BEAM","GALA"]},
 ]
 
 
 def get_lifecycle_stage(confidence, mentions_growth):
+    """
+    Matches the thresholds in backend/momentum.py and dashboard.js exactly.
+    """
     if confidence < 55:
         return "declining"
-    if confidence >= 55 and confidence < 68 and mentions_growth >= 60:
+    if confidence < 68 and mentions_growth >= 60:
         return "emerging"
-    if confidence >= 55 and confidence < 68:
+    if confidence < 68:
         return "declining"
-    if confidence >= 68 and confidence < 78:
+    if confidence < 78:
         return "rising"
     return "peak"
+
+
+def get_volume_growth(tokens):
+    """
+    Fetches real 24hr price change from Binance public ticker.
+    No API key required. Returns normalized 0–100 score.
+    """
+    scores = []
+    for symbol in tokens[:3]:
+        try:
+            url = BINANCE_TICKER.format(symbol)
+            req = urllib.request.Request(url, headers={"User-Agent": "NarratexSkill/1.0"})
+            with urllib.request.urlopen(req, timeout=5) as r:
+                data = json.loads(r.read().decode())
+                change = float(data.get("priceChangePercent", 0))
+                normalized = min(100.0, max(0.0, (change + 10.0) * 5.0))
+                scores.append(normalized)
+        except Exception:
+            continue
+    return round(sum(scores) / len(scores), 1) if scores else 50.0
 
 
 def fetch_from_api():
@@ -80,7 +107,7 @@ def fetch_from_api():
         if not narratives:
             raise ValueError("Empty narratives from API")
 
-        # Attach lifecycle stage if not present
+        # Attach lifecycle stage if backend didn't return one
         for n in narratives:
             if "stage" not in n:
                 n["stage"] = get_lifecycle_stage(
@@ -119,8 +146,10 @@ def fetch_from_binance_square():
                     text = " ".join([
                         str(post.get("title", "")),
                         str(post.get("content", "")),
-                        " ".join(t.get("name", "") if isinstance(t, dict) else t
-                                 for t in (post.get("tagList") or []))
+                        " ".join(
+                            t.get("name", "") if isinstance(t, dict) else t
+                            for t in (post.get("tagList") or [])
+                        )
                     ]).lower()
 
                     engagement = (
@@ -142,28 +171,27 @@ def fetch_from_binance_square():
     if not buckets:
         raise ValueError("No signals from Binance Square")
 
-    # Normalize to 0-100 scores
-    max_signal = max(b["signal"] for b in buckets.values()) or 1
+    max_signal = max(b["signal"]     for b in buckets.values()) or 1
     max_eng    = max(b["engagement"] for b in buckets.values()) or 1
-    max_ment   = max(b["mentions"] for b in buckets.values()) or 1
+    max_ment   = max(b["mentions"]   for b in buckets.values()) or 1
 
     narratives = []
     for name, bucket in buckets.items():
         mg = round((bucket["mentions"]   / max_ment)   * 100, 1)
         eg = round((bucket["engagement"] / max_eng)    * 100, 1)
-        vg = round((bucket["signal"]     / max_signal) * 100 * 0.6 + 30, 1)  # proxy
+        tokens = NARRATIVE_TOKENS.get(name, [])
+        vg = get_volume_growth(tokens)
 
-        confidence = int(mg * 0.50 + eg * 0.30 + vg * 0.20)
-        confidence = min(100, max(0, confidence))
+        confidence = int(min(100, max(0, mg * 0.50 + eg * 0.30 + vg * 0.20)))
 
         narratives.append({
             "name":              name,
             "confidence":        confidence,
             "mentions_growth":   mg,
             "engagement_growth": eg,
-            "volume_growth":     round(vg, 1),
-            "tokens":            NARRATIVE_TOKENS.get(name, []),
+            "volume_growth":     vg,
             "stage":             get_lifecycle_stage(confidence, mg),
+            "tokens":            tokens,
         })
 
     narratives.sort(key=lambda n: n["confidence"], reverse=True)
@@ -171,24 +199,28 @@ def fetch_from_binance_square():
 
 
 def main():
-    source = "seed"
+    source     = "seed"
     narratives = SEED_DATA
 
-    # Try API first
+    # Try Narratex API first
     try:
         narratives, source = fetch_from_api()
     except Exception as api_err:
+        sys.stderr.write(f"[narratex] API unavailable: {api_err}\n")
+
         # Try direct Binance Square collection
         try:
             narratives, source = fetch_from_binance_square()
-        except Exception:
-            pass  # Fall through to seed data
+        except Exception as sq_err:
+            sys.stderr.write(f"[narratex] Binance Square unavailable: {sq_err}\n")
+            sys.stderr.write("[narratex] Both sources failed — serving seed data\n")
+            source = "seed"
 
     output = {
-        "narratives":   narratives,
-        "source":       source,
-        "count":        len(narratives),
-        "fetched_at":   datetime.now(timezone.utc).isoformat(),
+        "narratives": narratives,
+        "source":     source,
+        "count":      len(narratives),
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
     }
 
     print(json.dumps(output, indent=2))

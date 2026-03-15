@@ -6,9 +6,10 @@
       "mentions_growth": 91.0,
       "engagement_growth": 88.0,
       "volume_growth": 62.0,
+      "stage": "peak",
       "tokens": ["FET", "TAO", "RNDR", "AKT", "WLD", "AGIX", "OCEAN"],
       "post_count": 47,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "Solana Ecosystem",
@@ -16,9 +17,10 @@
       "mentions_growth": 86.0,
       "engagement_growth": 82.0,
       "volume_growth": 57.0,
+      "stage": "peak",
       "tokens": ["SOL", "JUP", "RAY", "BONK", "PYTH", "JTO", "ORCA"],
       "post_count": 41,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "Bitcoin Ecosystem",
@@ -26,9 +28,10 @@
       "mentions_growth": 84.0,
       "engagement_growth": 79.0,
       "volume_growth": 53.0,
+      "stage": "peak",
       "tokens": ["STX", "ORDI", "SATS", "RUNE", "WBTC"],
       "post_count": 38,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "DeFi Resurgence",
@@ -36,9 +39,10 @@
       "mentions_growth": 77.0,
       "engagement_growth": 72.0,
       "volume_growth": 49.0,
+      "stage": "rising",
       "tokens": ["AAVE", "UNI", "CRV", "GMX", "DYDX", "PENDLE"],
       "post_count": 33,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "DePIN Compute",
@@ -46,9 +50,10 @@
       "mentions_growth": 71.0,
       "engagement_growth": 65.0,
       "volume_growth": 58.0,
+      "stage": "emerging",
       "tokens": ["HNT", "IOTX", "FIL", "AKT", "AR", "STORJ"],
       "post_count": 28,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "Layer 2 Scaling",
@@ -56,9 +61,10 @@
       "mentions_growth": 68.0,
       "engagement_growth": 61.0,
       "volume_growth": 44.0,
+      "stage": "declining",
       "tokens": ["ARB", "OP", "MATIC", "ZKS", "STRK", "MANTA"],
       "post_count": 24,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "RWA Tokenization",
@@ -66,9 +72,10 @@
       "mentions_growth": 62.0,
       "engagement_growth": 55.0,
       "volume_growth": 41.0,
+      "stage": "emerging",
       "tokens": ["ONDO", "CFG", "MPL", "TRU", "POLYX"],
       "post_count": 19,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     },
     {
       "name": "Gaming Infrastructure",
@@ -76,9 +83,13 @@
       "mentions_growth": 55.0,
       "engagement_growth": 49.0,
       "volume_growth": 46.0,
+      "stage": "declining",
       "tokens": ["IMX", "RON", "MAGIC", "BEAM", "GALA", "SAND"],
       "post_count": 16,
-      "scored_at": "2025-03-13T00:00:00+00:00"
+      "scored_at": "2026-03-15T00:00:00+00:00"
     }
-  ]
+  ],
+  "source": "seed",
+  "count": 8,
+  "fetched_at": "2026-03-15T00:00:00+00:00"
 }

@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Narratex — Dashboard</title>
+  <meta name="description" content="Narratex narrative intelligence dashboard — live crypto narrative momentum, confidence scores, and token associations from Binance Square.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Version pinned — update intentionally, not passively -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -24,7 +26,7 @@
   <div id="error-banner">
     <span class="err-icon">⚠</span>
     <span id="error-message"></span>
-    <button id="retry-btn">RETRY</button>
+    <button id="retry-btn" type="button" aria-label="Retry loading narrative data">RETRY</button>
   </div>
 
   <!-- Top bar -->
@@ -48,8 +50,8 @@
         <span class="meta-sep">·</span>
         <span class="meta-time">UPDATED <span id="last-updated">—</span></span>
       </div>
-      <button id="refresh-btn" class="topbar-btn">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <button id="refresh-btn" type="button" class="topbar-btn" aria-label="Refresh narrative data">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         REFRESH
       </button>
     </div>
@@ -64,7 +66,7 @@
         <div class="sec-head">
           <span class="sec-num">01</span>
           <h2 class="sec-title">Narrative Leaderboard</h2>
-          <span class="sec-desc">Ranked by confidence score — updated in real time</span>
+          <span class="sec-desc">Ranked by confidence score — refreshed every 5 minutes</span>
         </div>
         <div id="leaderboard"></div>
       </div>
@@ -126,7 +128,7 @@
         <div class="sec-head">
           <span class="sec-num">05</span>
           <h2 class="sec-title">Token Radar</h2>
-          <span class="sec-desc">Top 10 tokens by narrative strength</span>
+          <span class="sec-desc">Top 6 narratives by confidence — radar view</span>
         </div>
         <div class="chart-panel radar-panel">
           <canvas id="tokenRadar"></canvas>
@@ -139,11 +141,11 @@
           <h2 class="sec-title">Active Narratives</h2>
           <span class="sec-desc">Signal breakdown with token associations</span>
         </div>
-        <div class="filter-row">
-          <button class="fbtn active" data-filter="all">ALL</button>
-          <button class="fbtn" data-filter="strong">STRONG ≥75</button>
-          <button class="fbtn" data-filter="moderate">MID 50–74</button>
-          <button class="fbtn" data-filter="weak">WEAK &lt;50</button>
+        <div class="filter-row" role="group" aria-label="Filter narratives by confidence">
+          <button class="fbtn active" type="button" data-filter="all">ALL</button>
+          <button class="fbtn" type="button" data-filter="strong">STRONG ≥75</button>
+          <button class="fbtn" type="button" data-filter="moderate">MID 50–74</button>
+          <button class="fbtn" type="button" data-filter="weak">WEAK &lt;50</button>
         </div>
         <div id="cards"></div>
       </div>

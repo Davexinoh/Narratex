@@ -258,7 +258,8 @@
       </p>
 
       <div class="ticker-wrap">
-        <div class="ticker">
+        <div class="ticker" id="ticker-track">
+          <!-- Populated by live API — seed data shown while loading -->
           <span class="ticker-item hot">↑ AI Infrastructure · 84%</span>
           <span class="ticker-item hot">↑ Solana Ecosystem · 79%</span>
           <span class="ticker-item">Bitcoin Ecosystem · 76%</span>
@@ -292,5 +293,23 @@
       <span>Built by Davexinoh</span>
     </div>
   </div>
+  <script>
+    // Wire ticker to live API — falls back to seed data (already in HTML) if API is cold
+    const NARRATEX_API = "https://narratex.onrender.com/api/narratives";
+    fetch(NARRATEX_API)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.narratives || !data.narratives.length) return;
+        const track = document.getElementById("ticker-track");
+        // Duplicate the list for seamless infinite scroll
+        const items = [...data.narratives, ...data.narratives];
+        track.innerHTML = items.map(n => {
+          const hot   = n.confidence >= 70;
+          const arrow = hot ? "↑ " : "";
+          return `<span class="ticker-item ${hot ? "hot" : ""}">${arrow}${n.name} · ${n.confidence}%</span>`;
+        }).join("");
+      })
+      .catch(() => {}); // silently keep seed data on failure
+  </script>
 </body>
 </html>

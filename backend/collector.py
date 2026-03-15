@@ -10,14 +10,17 @@ import requests
 import time
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+
+from seeds import NARRATIVE_SEEDS
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [collector] %(message)s")
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Binance Square public feed endpoint
-# No auth required for public posts
+# NOTE: This is an unofficial internal endpoint — not part of Binance's
+# public API. It may change or start returning 403s without warning.
+# The app falls back to get_fallback_signals() if it becomes unreachable.
 # ---------------------------------------------------------------------------
 BINANCE_SQUARE_API = "https://www.binance.com/bapi/composite/v1/public/square/feed/list"
 
@@ -26,37 +29,6 @@ DEFAULT_HEADERS = {
     "Accept": "application/json",
     "Accept-Language": "en-US,en;q=0.9",
     "Referer": "https://www.binance.com/en/square",
-}
-
-# ---------------------------------------------------------------------------
-# Narrative seed keywords
-# Used to filter / score relevance of collected posts
-# ---------------------------------------------------------------------------
-NARRATIVE_SEEDS = {
-    "AI Infrastructure":      ["ai", "artificial intelligence", "machine learning", "llm", "gpu compute",
-                                "fetch", "rndr", "render", "tao", "bittensor", "akt", "akash",
-                                "worldcoin", "wld", "gpt", "openai", "deai"],
-    "DePIN Compute":          ["depin", "decentralized physical", "helium", "hnt", "iotex",
-                                "hivemapper", "geodnet", "render", "akash", "filecoin",
-                                "infrastructure", "compute network", "node operator"],
-    "Gaming Infrastructure":  ["gamefi", "gaming", "web3 game", "play to earn", "p2e",
-                                "imx", "immutable", "ronin", "ron", "magic", "treasure",
-                                "beam", "gala", "gods unchained", "axie", "sandbox", "decentraland"],
-    "RWA Tokenization":       ["rwa", "real world asset", "tokenized", "tokenization",
-                                "ondo", "centrifuge", "maple", "goldfinch", "truefi",
-                                "real estate token", "treasury token", "institutional defi"],
-    "Layer 2 Scaling":        ["layer 2", "l2", "rollup", "optimism", "op", "arbitrum",
-                                "arb", "base", "zksync", "polygon", "matic", "starknet",
-                                "scaling", "ethereum scaling", "eip", "blob"],
-    "DeFi Resurgence":        ["defi", "yield", "liquidity", "amm", "dex", "lending",
-                                "aave", "compound", "uniswap", "uni", "curve", "crv",
-                                "gmx", "hyperliquid", "perp", "derivatives", "tvl"],
-    "Bitcoin Ecosystem":      ["bitcoin", "btc", "ordinals", "brc-20", "runes", "stacks",
-                                "stx", "lightning", "taproot", "btcfi", "wrapped bitcoin",
-                                "bitcoin layer", "bitcoin defi"],
-    "Solana Ecosystem":       ["solana", "sol", "solana defi", "solana nft", "solana mobile",
-                                "jupiter", "jup", "raydium", "ray", "phantom", "saga",
-                                "solana gaming", "bonk", "meme sol", "pyth"],
 }
 
 
@@ -81,7 +53,16 @@ def fetch_square_posts(page: int = 1, page_size: int = 20) -> list[dict]:
         resp.raise_for_status()
         body = resp.json()
 
-        posts = body.get("data", {}).get("list", [])
+        # Validate expected response shape
+        if not isinstance(body.get("data"), dict):
+            log.error(f"Unexpected response shape from Binance Square: {list(body.keys())}")
+            return []
+
+        posts = body["data"].get("list", [])
+
+        if page == 1 and not posts:
+            log.warning("Binance Square returned 0 posts on page 1 — endpoint may have changed")
+
         log.info(f"Fetched {len(posts)} posts from Binance Square (page {page})")
         return posts
 
@@ -103,12 +84,10 @@ def extract_post_text(post: dict) -> str:
     """
     text_parts = []
 
-    # Title field
     title = post.get("title") or post.get("articleTitle") or ""
     if title:
         text_parts.append(title)
 
-    # Body / content field (may be nested)
     content = (
         post.get("content")
         or post.get("articleContent")
@@ -120,7 +99,6 @@ def extract_post_text(post: dict) -> str:
     elif isinstance(content, dict):
         text_parts.append(content.get("text", ""))
 
-    # Tags
     tags = post.get("tagList") or post.get("tags") or []
     if isinstance(tags, list):
         for tag in tags:
@@ -135,7 +113,7 @@ def extract_post_text(post: dict) -> str:
 def score_post_relevance(text: str, keywords: list[str]) -> int:
     """
     Returns a relevance score for a post against a set of narrative keywords.
-    Each keyword hit adds to the score; multi-word matches score higher.
+    Multi-word keyword matches score higher than single-word matches.
     """
     score = 0
     for kw in keywords:
@@ -151,11 +129,11 @@ def collect_signals(pages: int = 5) -> list[dict]:
 
     Returns a list of signal dicts:
     {
-        "post_id": str,
-        "text": str,
+        "post_id":          str,
+        "text":             str,
         "narrative_scores": { narrative_name: score },
-        "collected_at": ISO timestamp,
-        "engagement": int
+        "collected_at":     ISO timestamp,
+        "engagement":       int,
     }
     """
     signals = []
@@ -175,14 +153,12 @@ def collect_signals(pages: int = 5) -> list[dict]:
             if not text:
                 continue
 
-            # Score against each narrative
             narrative_scores = {}
             for narrative, keywords in NARRATIVE_SEEDS.items():
                 score = score_post_relevance(text, keywords)
                 if score > 0:
                     narrative_scores[narrative] = score
 
-            # Engagement proxy (likes + comments + shares)
             engagement = (
                 post.get("likeCount", 0)
                 + post.get("commentCount", 0)
@@ -191,14 +167,13 @@ def collect_signals(pages: int = 5) -> list[dict]:
             )
 
             signals.append({
-                "post_id": post_id,
-                "text": text[:500],  # cap stored text length
+                "post_id":          post_id,
+                "text":             text[:500],
                 "narrative_scores": narrative_scores,
-                "collected_at": datetime.now(timezone.utc).isoformat(),
-                "engagement": engagement,
+                "collected_at":     datetime.now(timezone.utc).isoformat(),
+                "engagement":       engagement,
             })
 
-        # Polite rate limiting between pages
         if page < pages:
             time.sleep(0.5)
 
@@ -213,12 +188,12 @@ def get_fallback_signals() -> list[dict]:
     """
     now = datetime.now(timezone.utc).isoformat()
     return [
-        {"post_id": "demo_001", "text": "ai infrastructure fetch tao rndr gpu compute llm", "narrative_scores": {"AI Infrastructure": 9}, "collected_at": now, "engagement": 420},
+        {"post_id": "demo_001", "text": "ai infrastructure fetch tao rndr gpu compute llm", "narrative_scores": {"AI Infrastructure": 9},      "collected_at": now, "engagement": 420},
         {"post_id": "demo_002", "text": "depin helium hnt iotex node operator decentralized physical", "narrative_scores": {"DePIN Compute": 8}, "collected_at": now, "engagement": 310},
-        {"post_id": "demo_003", "text": "gamefi imx ronin ron magic play to earn web3 game", "narrative_scores": {"Gaming Infrastructure": 7}, "collected_at": now, "engagement": 280},
-        {"post_id": "demo_004", "text": "rwa tokenization ondo real world asset institutional defi", "narrative_scores": {"RWA Tokenization": 7}, "collected_at": now, "engagement": 195},
-        {"post_id": "demo_005", "text": "layer 2 arbitrum optimism zksync rollup ethereum scaling", "narrative_scores": {"Layer 2 Scaling": 8}, "collected_at": now, "engagement": 350},
-        {"post_id": "demo_006", "text": "defi aave uniswap yield liquidity amm dex tvl", "narrative_scores": {"DeFi Resurgence": 9}, "collected_at": now, "engagement": 410},
-        {"post_id": "demo_007", "text": "bitcoin ordinals brc-20 runes btcfi stacks lightning", "narrative_scores": {"Bitcoin Ecosystem": 8}, "collected_at": now, "engagement": 520},
-        {"post_id": "demo_008", "text": "solana sol jupiter jup raydium phantom bonk saga", "narrative_scores": {"Solana Ecosystem": 9}, "collected_at": now, "engagement": 480},
+        {"post_id": "demo_003", "text": "gamefi imx ronin ron magic play to earn web3 game", "narrative_scores": {"Gaming Infrastructure": 7},  "collected_at": now, "engagement": 280},
+        {"post_id": "demo_004", "text": "rwa tokenization ondo real world asset institutional defi", "narrative_scores": {"RWA Tokenization": 7},"collected_at": now, "engagement": 195},
+        {"post_id": "demo_005", "text": "layer 2 arbitrum optimism zksync rollup ethereum scaling", "narrative_scores": {"Layer 2 Scaling": 8},  "collected_at": now, "engagement": 350},
+        {"post_id": "demo_006", "text": "defi aave uniswap yield liquidity amm dex tvl", "narrative_scores": {"DeFi Resurgence": 9},            "collected_at": now, "engagement": 410},
+        {"post_id": "demo_007", "text": "bitcoin ordinals brc-20 runes btcfi stacks lightning", "narrative_scores": {"Bitcoin Ecosystem": 8},   "collected_at": now, "engagement": 520},
+        {"post_id": "demo_008", "text": "solana sol jupiter jup raydium phantom bonk saga", "narrative_scores": {"Solana Ecosystem": 9},         "collected_at": now, "engagement": 480},
     ]

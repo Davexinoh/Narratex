@@ -39,28 +39,40 @@ function hideError() {
   errorBanner.style.display = "none";
 }
 
-// ── Lifecycle stage assignment ─────────────────────────────────────────────
-// Assigns each narrative a lifecycle stage based on confidence + momentum proxy
+// ── Lifecycle stage ────────────────────────────────────────────────────────
+// Prefer the stage field from the API when present.
+// Falls back to client-side calculation for seed data.
+// Thresholds must match momentum.py get_lifecycle_stage().
 function getLifecycleStage(n) {
-  const score = n.confidence;
+  if (n.stage) return n.stage;
+  const score    = n.confidence;
   const mentions = n.mentions_growth || 0;
-  // Use mentions velocity as a proxy for acceleration
-  if (score < 55)              return "declining";
-  if (score >= 55 && score < 68 && mentions >= 60) return "emerging";
-  if (score >= 55 && score < 68)                   return "declining";
-  if (score >= 68 && score < 78) return "rising";
-  if (score >= 78)               return "peak";
-  return "rising";
+  if (score < 55)                              return "declining";
+  if (score < 68 && mentions >= 60)            return "emerging";
+  if (score < 68)                              return "declining";
+  if (score < 78)                              return "rising";
+  return "peak";
 }
 
 function lifecycleArrow(stage) {
   const map = {
-    emerging:  { arrow: "↗",  color: "#38bdf8" },
-    rising:    { arrow: "↑",  color: "#10b981" },
-    peak:      { arrow: "▲",  color: "#f0b90b" },
-    declining: { arrow: "↘",  color: "#ef4444" },
+    emerging:  { arrow: "↗", color: "#38bdf8" },
+    rising:    { arrow: "↑", color: "#10b981" },
+    peak:      { arrow: "▲", color: "#f0b90b" },
+    declining: { arrow: "↘", color: "#ef4444" },
   };
   return map[stage] || map.rising;
+}
+
+// ── Source label ───────────────────────────────────────────────────────────
+function getSourceLabel(source) {
+  const map = {
+    live:           "LIVE",
+    binance_square: "LIVE",
+    demo:           "DEMO",
+    seed:           "CACHED",
+  };
+  return map[source] || "LIVE";
 }
 
 // ── Leaderboard ────────────────────────────────────────────────────────────
@@ -104,16 +116,14 @@ function renderLeaderboard(narratives) {
 function renderLifecycle(narratives) {
   const stages = ["emerging", "rising", "peak", "declining"];
 
-  // Clear all stage item containers
   stages.forEach(s => {
     const el = document.querySelector(`#stage-${s} .stage-items`);
     if (el) el.innerHTML = "";
   });
 
   narratives.forEach((n, i) => {
-    const stage = getLifecycleStage(n);
-    const lc    = lifecycleArrow(stage);
-    const theme = confidenceTheme(n.confidence);
+    const stage     = getLifecycleStage(n);
+    const lc        = lifecycleArrow(stage);
     const container = document.querySelector(`#stage-${stage} .stage-items`);
     if (!container) return;
 
@@ -128,7 +138,6 @@ function renderLifecycle(narratives) {
     container.appendChild(item);
   });
 
-  // Show empty state for any stage with no narratives
   stages.forEach(s => {
     const el = document.querySelector(`#stage-${s} .stage-items`);
     if (el && el.children.length === 0) {
@@ -136,7 +145,6 @@ function renderLifecycle(narratives) {
     }
   });
 }
-
 
 const CHART_DEFAULTS = {
   color: "#555",
@@ -202,21 +210,20 @@ function renderTimeline(narratives) {
           borderWidth: 1,
           titleColor: "#fff",
           bodyColor: "#888",
-          titleFont: { family: "'DM Mono', monospace", size: 11 },
+          titleFont: { family: "'DM Mono', monospace" },
           bodyFont:  { family: "'DM Mono', monospace", size: 10 },
           padding: 12,
-          callbacks: { label: c => `  ${c.dataset.label}: ${c.parsed.y}%` }
         }
       },
       scales: {
         x: {
-          ticks: { color: "#444", font: { family: "'DM Mono', monospace", size: 9 }, maxRotation: 28 },
-          grid:  { color: "rgba(255,255,255,0.03)" }
+          ticks: { color: "#444", font: { family: "'DM Mono', monospace", size: 9 }, maxRotation: 30 },
+          grid:  { color: "rgba(255,255,255,0.03)" },
         },
         y: {
           min: 0, max: 100,
           ticks: { color: "#444", font: { family: "'DM Mono', monospace", size: 9 }, callback: v => `${v}%` },
-          grid:  { color: "rgba(255,255,255,0.03)" }
+          grid:  { color: "rgba(255,255,255,0.03)" },
         }
       }
     }
@@ -228,30 +235,21 @@ function renderRadar(narratives) {
   const ctx = document.getElementById("tokenRadar").getContext("2d");
   if (radarChart) radarChart.destroy();
 
-  const tokenMap = {};
-  narratives.forEach(n => {
-    n.tokens.forEach(t => {
-      if (!tokenMap[t] || tokenMap[t] < n.confidence) tokenMap[t] = n.confidence;
-    });
-  });
-
-  const top = Object.entries(tokenMap).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const top = [...narratives].sort((a, b) => b.confidence - a.confidence).slice(0, 6);
 
   radarChart = new Chart(ctx, {
     type: "radar",
     data: {
-      labels: top.map(e => e[0]),
+      labels: top.map(n => n.name),
       datasets: [{
-        label: "Narrative Strength",
-        data:  top.map(e => e[1]),
-        backgroundColor:    "rgba(240,185,11,0.06)",
-        borderColor:        "#f0b90b",
-        borderWidth:        1.5,
-        pointBackgroundColor: "#f0b90b",
-        pointBorderColor:   "#000",
-        pointBorderWidth:   2,
-        pointRadius:        4,
-        pointHoverRadius:   6,
+        label: "Confidence",
+        data: top.map(n => n.confidence),
+        backgroundColor: "rgba(240,185,11,0.07)",
+        borderColor: "rgba(240,185,11,0.5)",
+        borderWidth: 1.5,
+        pointBackgroundColor: top.map(n => confidenceTheme(n.confidence).color),
+        pointRadius: 3,
+        pointHoverRadius: 6,
       }]
     },
     options: {
@@ -283,12 +281,9 @@ function renderRadar(narratives) {
             callback: v => `${v}%`,
             stepSize: 25,
           },
-          grid:       { color: "rgba(255,255,255,0.05)" },
-          angleLines: { color: "rgba(255,255,255,0.05)" },
-          pointLabels: {
-            color: "#888",
-            font: { family: "'DM Mono', monospace", size: 11 }
-          }
+          grid:        { color: "rgba(255,255,255,0.05)" },
+          angleLines:  { color: "rgba(255,255,255,0.05)" },
+          pointLabels: { color: "#888", font: { family: "'DM Mono', monospace", size: 11 } }
         }
       }
     }
@@ -387,21 +382,24 @@ document.querySelectorAll(".fbtn").forEach(btn => {
 
 // ── Seed fallback data (used when API is cold-starting or unreachable) ──────
 const SEED_NARRATIVES = [
-  { name: "AI Infrastructure",     confidence: 84, mentions_growth: 91, engagement_growth: 88, volume_growth: 62, tokens: ["FET","TAO","RNDR","AKT","WLD","AGIX","OCEAN"], post_count: 47 },
-  { name: "Solana Ecosystem",       confidence: 79, mentions_growth: 86, engagement_growth: 82, volume_growth: 57, tokens: ["SOL","JUP","RAY","BONK","PYTH","JTO","ORCA"], post_count: 41 },
-  { name: "Bitcoin Ecosystem",      confidence: 76, mentions_growth: 84, engagement_growth: 79, volume_growth: 53, tokens: ["STX","ORDI","SATS","RUNE","WBTC"], post_count: 38 },
-  { name: "DeFi Resurgence",        confidence: 71, mentions_growth: 77, engagement_growth: 72, volume_growth: 49, tokens: ["AAVE","UNI","CRV","GMX","DYDX","PENDLE"], post_count: 33 },
-  { name: "DePIN Compute",          confidence: 67, mentions_growth: 71, engagement_growth: 65, volume_growth: 58, tokens: ["HNT","IOTX","FIL","AKT","AR","STORJ"], post_count: 28 },
-  { name: "Layer 2 Scaling",        confidence: 63, mentions_growth: 68, engagement_growth: 61, volume_growth: 44, tokens: ["ARB","OP","MATIC","ZKS","STRK","MANTA"], post_count: 24 },
-  { name: "RWA Tokenization",       confidence: 58, mentions_growth: 62, engagement_growth: 55, volume_growth: 41, tokens: ["ONDO","CFG","MPL","TRU","POLYX"], post_count: 19 },
-  { name: "Gaming Infrastructure",  confidence: 52, mentions_growth: 55, engagement_growth: 49, volume_growth: 46, tokens: ["IMX","RON","MAGIC","BEAM","GALA","SAND"], post_count: 16 },
+  { name: "AI Infrastructure",    confidence: 84, mentions_growth: 91, engagement_growth: 88, volume_growth: 62, stage: "peak",      tokens: ["FET","TAO","RNDR","AKT","WLD","AGIX","OCEAN"], post_count: 47 },
+  { name: "Solana Ecosystem",     confidence: 79, mentions_growth: 86, engagement_growth: 82, volume_growth: 57, stage: "peak",      tokens: ["SOL","JUP","RAY","BONK","PYTH","JTO","ORCA"],  post_count: 41 },
+  { name: "Bitcoin Ecosystem",    confidence: 76, mentions_growth: 84, engagement_growth: 79, volume_growth: 53, stage: "peak",      tokens: ["STX","ORDI","SATS","RUNE","WBTC"],             post_count: 38 },
+  { name: "DeFi Resurgence",      confidence: 71, mentions_growth: 77, engagement_growth: 72, volume_growth: 49, stage: "rising",    tokens: ["AAVE","UNI","CRV","GMX","DYDX","PENDLE"],      post_count: 33 },
+  { name: "DePIN Compute",        confidence: 67, mentions_growth: 71, engagement_growth: 65, volume_growth: 58, stage: "emerging",  tokens: ["HNT","IOTX","FIL","AKT","AR","STORJ"],         post_count: 28 },
+  { name: "Layer 2 Scaling",      confidence: 63, mentions_growth: 68, engagement_growth: 61, volume_growth: 44, stage: "declining", tokens: ["ARB","OP","MATIC","ZKS","STRK","MANTA"],       post_count: 24 },
+  { name: "RWA Tokenization",     confidence: 58, mentions_growth: 62, engagement_growth: 55, volume_growth: 41, stage: "emerging",  tokens: ["ONDO","CFG","MPL","TRU","POLYX"],              post_count: 19 },
+  { name: "Gaming Infrastructure",confidence: 52, mentions_growth: 55, engagement_growth: 49, volume_growth: 46, stage: "declining", tokens: ["IMX","RON","MAGIC","BEAM","GALA","SAND"],      post_count: 16 },
 ];
 
-function renderAll(narratives, source) {
+function renderAll(narratives, source, lastUpdated) {
   allNarratives = narratives;
-  if (lastUpdatedEl)  lastUpdatedEl.textContent = formatTime(new Date().toISOString());
-  if (sourceTagEl)    sourceTagEl.textContent   = source === "demo" ? "DEMO" : "LIVE";
+
+  // Use the actual data timestamp — not the current time
+  if (lastUpdatedEl) lastUpdatedEl.textContent = lastUpdated ? formatTime(lastUpdated) : "—";
+  if (sourceTagEl)   sourceTagEl.textContent   = getSourceLabel(source);
   if (narrativeCount) narrativeCount.textContent = `${narratives.length} NARRATIVES`;
+
   renderLeaderboard(narratives);
   renderLifecycle(narratives);
   renderTimeline(narratives);
@@ -415,7 +413,7 @@ async function loadNarratives(force = false) {
   setLoading(true);
   hideError();
 
-  // Abort controller — 55s timeout to handle Render cold starts
+  // 55s timeout to handle Render cold starts
   const controller = new AbortController();
   const timeout    = setTimeout(() => controller.abort(), 55000);
 
@@ -432,18 +430,17 @@ async function loadNarratives(force = false) {
       throw new Error("Empty response from API.");
     }
 
-    renderAll(data.narratives, data.source);
+    renderAll(data.narratives, data.source, data.last_updated);
 
   } catch (err) {
     clearTimeout(timeout);
     console.warn("[Narratex] API unreachable — using seed data.", err.message);
 
-    // Fall back to seed data silently — dashboard stays functional
-    renderAll(SEED_NARRATIVES, "demo");
+    // Fall back to seed data — dashboard stays functional
+    renderAll(SEED_NARRATIVES, "seed", null);
 
-    // Show a soft warning (not a hard error) so user knows it's cached
-    if (sourceTagEl) sourceTagEl.textContent = "CACHED";
-    if (lastUpdatedEl) lastUpdatedEl.textContent = "—";
+    if (sourceTagEl)   sourceTagEl.textContent   = "CACHED";
+    if (lastUpdatedEl) lastUpdatedEl.textContent  = "—";
   } finally {
     setLoading(false);
   }

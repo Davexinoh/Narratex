@@ -123,7 +123,7 @@ Rules:
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-sonnet-4-6",
                 "max_tokens": 1000,
                 "system": system,
                 "messages": [{"role": "user", "content": question}]
@@ -133,8 +133,11 @@ Rules:
         resp.raise_for_status()
         data = resp.json()
         return data["content"][0]["text"]
+    except requests.exceptions.HTTPError as e:
+        log.error(f"Claude API HTTP error: {e.response.status_code} — {e.response.text}")
+        return None
     except Exception as e:
-        log.warning(f"Claude API failed: {e}")
+        log.error(f"Claude API failed: {type(e).__name__}: {e}")
         return None
 
 # ── Command handlers ─────────────────────────────────────────────────────────

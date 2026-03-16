@@ -30,7 +30,7 @@ log = logging.getLogger(name)
 
 app = Flask(name)
 
-Lock CORS to the actual frontend origins only
+#Lock CORS to the actual frontend origins only
 
 CORS(app, origins=[
 "https://davexinoh.github.io",

@@ -1,44 +1,78 @@
+import os
 import requests
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 API_URL = "https://narratex.onrender.com/api/narratives"
-TOKEN = "8749835569:AAHrpPvrBua1pz0T3H8NMcpyIgeEkJPUMVQ"
+
+# Telegram token pulled from Render environment variable
+TOKEN = os.environ.get("TELEGRAM_TOKEN")
+
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Welcome to Narratex\n\nAI Narrative Intelligence Engine\n\nCommands:\n/leaderboard\n/briefing"
+    text = (
+        "Narratex Narrative Intelligence\n\n"
+        "Commands:\n"
+        "/leaderboard — Top crypto narratives\n"
+        "/briefing — Current market narrative briefing\n"
     )
+
+    await update.message.reply_text(text)
+
 
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    r = requests.get(API_URL)
-    data = r.json()
+    try:
+        r = requests.get(API_URL)
+        data = r.json()
 
-    text = "Narratex Narrative Leaderboard\n\n"
+        text = "Narratex Narrative Leaderboard\n\n"
 
-    for i, n in enumerate(data["narratives"][:5], start=1):
-        text += f"{i}. {n['name']} — {n['confidence']}%\n"
+        for i, n in enumerate(data["narratives"][:8], start=1):
 
-    await update.message.reply_text(text)
+            text += (
+                f"{i}. {n['name']}\n"
+                f"Confidence: {n['confidence']}%\n"
+                f"Tokens: {', '.join(n['tokens'])}\n\n"
+            )
+
+        await update.message.reply_text(text)
+
+    except Exception as e:
+
+        await update.message.reply_text(
+            "Narratex API is currently unavailable."
+        )
+
 
 async def briefing(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    r = requests.get(API_URL)
-    data = r.json()
+    try:
+        r = requests.get(API_URL)
+        data = r.json()
 
-    top = data["narratives"][0]
+        top = data["narratives"][0]
 
-    text = (
-        f"Narratex Market Briefing\n\n"
-        f"Top Narrative: {top['name']}\n"
-        f"Confidence: {top['confidence']}%\n"
-        f"Tokens: {', '.join(top['tokens'])}"
-    )
+        text = (
+            "Narratex Market Briefing\n\n"
+            f"Top Narrative: {top['name']}\n"
+            f"Confidence Score: {top['confidence']}%\n\n"
+            f"Key Tokens:\n{', '.join(top['tokens'])}"
+        )
 
-    await update.message.reply_text(text)
+        await update.message.reply_text(text)
+
+    except Exception:
+
+        await update.message.reply_text(
+            "Unable to fetch narrative briefing."
+        )
+
 
 def main():
+
+    if not TOKEN:
+        raise ValueError("TELEGRAM_TOKEN environment variable not set")
 
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -47,6 +81,7 @@ def main():
     app.add_handler(CommandHandler("briefing", briefing))
 
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()

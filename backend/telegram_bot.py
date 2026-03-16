@@ -3,16 +3,11 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 API_URL = "https://narratex.onrender.com/api/narratives"
-TOKEN = "YOUR_NEW_TOKEN_HERE"
+TOKEN = "8749835569:AAHrpPvrBua1pz0T3H8NMcpyIgeEkJPUMVQ"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Welcome to Narratex\n\n"
-        "AI Narrative Intelligence Engine\n\n"
-        "Commands:\n"
-        "/leaderboard\n"
-        "/briefing\n"
-        "/rotation"
+        "Welcome to Narratex\n\nAI Narrative Intelligence Engine\n\nCommands:\n/leaderboard\n/briefing"
     )
 
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):

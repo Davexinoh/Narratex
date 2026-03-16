@@ -416,23 +416,28 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 
-import threading
+
 import asyncio
-from flask import Flask as FlaskApp
+import uvicorn
+from starlette.applications import Starlette
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+from telegram.ext import ApplicationBuilder
 
-health_app = FlaskApp(__name__)
 
-@health_app.route("/")
-def health():
-    return {"service": "narratex-bot", "status": "running"}, 200
+async def homepage(request):
+    return JSONResponse({"service": "narratex-bot", "status": "running"})
 
 
-def run_bot_polling():
-    """Run the Telegram bot in its own thread with its own event loop."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def run():
+    if not TELEGRAM_TOKEN:
+        log.error("TELEGRAM_TOKEN not set")
+        return
 
-    tg_app = Application.builder().token(TELEGRAM_TOKEN).build()
+    port = int(os.environ.get("PORT", 8080))
+
+    tg_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     tg_app.add_handler(CommandHandler("start",       cmd_start))
     tg_app.add_handler(CommandHandler("briefing",    cmd_briefing))
@@ -443,32 +448,26 @@ def run_bot_polling():
     tg_app.add_handler(CommandHandler("refresh",     cmd_refresh))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    log.info("Bot polling started")
-    tg_app.run_polling(allowed_updates=Update.ALL_TYPES)
+    starlette_app = Starlette(routes=[Route("/", homepage)])
+    config = uvicorn.Config(starlette_app, host="0.0.0.0", port=port, log_level="warning")
+    server = uvicorn.Server(config)
+
+    log.info(f"Starting Narratex Bot on port {port}")
+
+    async with tg_app:
+        await tg_app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await tg_app.start()
+        log.info("Bot polling started")
+        await server.serve()
+        await tg_app.updater.stop()
+        await tg_app.stop()
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
-    if not TELEGRAM_TOKEN:
-        log.error("TELEGRAM_TOKEN environment variable not set")
-        return
-
-    log.info("Starting Narratex Bot...")
-
-    # Start bot polling in background thread with its own event loop
-    bot_thread = threading.Thread(target=run_bot_polling, daemon=True)
-    bot_thread.start()
-
-    # Run Flask health server in main thread — satisfies Render web service check
-    port = int(os.environ.get("PORT", 8080))
-    log.info(f"Health server on port {port}")
-    health_app.run(host="0.0.0.0", port=port, use_reloader=False)
+    asyncio.run(run())
 
 
 if __name__ == "__main__":
     main()
-
-
-if __name__ == "__main__":
-    main()
-          
+  

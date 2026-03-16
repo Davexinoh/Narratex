@@ -416,28 +416,52 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+# ── Main — Webhook mode for Render free web service ──────────────────────────
+#
+# Render free tier only supports web services, not background workers.
+# Webhook mode lets the bot run as a web service — Telegram pushes
+# updates to our URL instead of us polling Telegram continuously.
+#
+# Required env vars:
+#   TELEGRAM_TOKEN     — from BotFather
+#   RENDER_EXTERNAL_URL — set automatically by Render (e.g. https://narratex-bot.onrender.com)
+#   ANTHROPIC_API_KEY  — optional, enables AI chat responses
+#   PORT               — set automatically by Render
+
 def main():
     if not TELEGRAM_TOKEN:
         log.error("TELEGRAM_TOKEN environment variable not set")
         return
 
-    log.info("Starting Narratex Telegram Bot...")
+    port          = int(os.environ.get("PORT", 8443))
+    render_url    = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    webhook_path  = f"/webhook/{TELEGRAM_TOKEN}"
+    webhook_url   = f"{render_url}{webhook_path}"
 
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    log.info(f"Starting Narratex Bot in webhook mode on port {port}")
+    log.info(f"Webhook URL: {webhook_url}")
 
-    app.add_handler(CommandHandler("start",       cmd_start))
-    app.add_handler(CommandHandler("briefing",    cmd_briefing))
-    app.add_handler(CommandHandler("leaderboard", cmd_leaderboard))
-    app.add_handler(CommandHandler("rotation",    cmd_rotation))
-    app.add_handler(CommandHandler("predictions", cmd_predictions))
-    app.add_handler(CommandHandler("tokens",      cmd_tokens))
-    app.add_handler(CommandHandler("refresh",     cmd_refresh))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    tg_app = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    log.info("Bot running — polling for messages")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    tg_app.add_handler(CommandHandler("start",       cmd_start))
+    tg_app.add_handler(CommandHandler("briefing",    cmd_briefing))
+    tg_app.add_handler(CommandHandler("leaderboard", cmd_leaderboard))
+    tg_app.add_handler(CommandHandler("rotation",    cmd_rotation))
+    tg_app.add_handler(CommandHandler("predictions", cmd_predictions))
+    tg_app.add_handler(CommandHandler("tokens",      cmd_tokens))
+    tg_app.add_handler(CommandHandler("refresh",     cmd_refresh))
+    tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    # Run webhook — Render provides the HTTPS URL automatically
+    tg_app.run_webhook(
+        listen="0.0.0.0",
+        port=port,
+        url_path=webhook_path,
+        webhook_url=webhook_url,
+        allowed_updates=Update.ALL_TYPES,
+    )
 
 
 if __name__ == "__main__":
     main()
+      

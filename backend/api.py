@@ -12,6 +12,7 @@ Endpoints:
 import logging
 import os
 import sys
+import threading
 from datetime import datetime, timezone
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -22,6 +23,9 @@ from collector import collect_signals, get_fallback_signals
 from extractor import extract_narratives
 from momentum import score_narratives
 
+# import telegram bot starter
+from telegram_bot import run_bot
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [api] %(levelname)s %(message)s"
@@ -30,7 +34,6 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Lock CORS to the actual frontend origins only
 CORS(app, origins=[
     "https://davexinoh.github.io",
     "http://localhost:5500",
@@ -38,32 +41,25 @@ CORS(app, origins=[
     "http://localhost:3000",
 ])
 
-# ---------------------------------------------------------------------------
-# In-memory cache
-# NOTE: render.yaml must use --workers 1 for this to work correctly.
-# Multiple workers = multiple processes = separate cache dicts.
-# ---------------------------------------------------------------------------
 _cache: dict = {
     "narratives":   [],
     "last_updated": None,
     "source":       None,
 }
-CACHE_TTL_SECONDS = 300  # 5 minutes
+
+CACHE_TTL_SECONDS = 300
 
 
 def is_cache_fresh() -> bool:
     if not _cache["last_updated"]:
         return False
+
     delta = (datetime.now(timezone.utc) - _cache["last_updated"]).total_seconds()
     return delta < CACHE_TTL_SECONDS
 
 
 def refresh_narratives(force: bool = False) -> list[dict]:
-    """
-    Runs the full pipeline: collect → extract → score.
-    Uses cache if still fresh unless force=True.
-    Falls back to demo signals if Binance Square is unreachable.
-    """
+
     if not force and is_cache_fresh():
         log.info("Returning cached narratives")
         return _cache["narratives"]
@@ -79,71 +75,68 @@ def refresh_narratives(force: bool = False) -> list[dict]:
         source = "demo"
 
     narratives = extract_narratives(signals)
-    scored     = score_narratives(narratives)
+    scored = score_narratives(narratives)
 
-    _cache["narratives"]   = scored
+    _cache["narratives"] = scored
     _cache["last_updated"] = datetime.now(timezone.utc)
-    _cache["source"]       = source
+    _cache["source"] = source
 
     log.info(f"Pipeline complete: {len(scored)} narratives ({source})")
     return scored
 
 
-# ---------------------------------------------------------------------------
-# Routes
-# ---------------------------------------------------------------------------
-
 @app.route("/", methods=["GET"])
 def health():
     return jsonify({
-        "service":   "Narratex API",
-        "status":    "ok",
-        "version":   "2.1.0",
-        "docs":      "/api/narratives",
+        "service": "Narratex API",
+        "status": "ok",
+        "version": "2.1.0",
+        "docs": "/api/narratives",
         "timestamp": datetime.now(timezone.utc).isoformat(),
     })
 
 
 @app.route("/api/narratives", methods=["GET"])
 def get_narratives():
-    """
-    Returns full narrative intelligence output.
 
-    Query params:
-      ?refresh=true      Force cache bypass and re-run pipeline
-      ?min_confidence=N  Filter by minimum confidence (default 0)
-    """
-    force    = request.args.get("refresh", "false").lower() == "true"
+    force = request.args.get("refresh", "false").lower() == "true"
     min_conf = int(request.args.get("min_confidence", 0))
 
     try:
         narratives = refresh_narratives(force=force)
-        filtered   = [n for n in narratives if n["confidence"] >= min_conf]
+        filtered = [n for n in narratives if n["confidence"] >= min_conf]
 
         return jsonify({
-            "narratives":   filtered,
-            "count":        len(filtered),
-            "source":       _cache.get("source", "unknown"),
+            "narratives": filtered,
+            "count": len(filtered),
+            "source": _cache.get("source", "unknown"),
             "last_updated": _cache["last_updated"].isoformat() if _cache["last_updated"] else None,
-            "cache_fresh":  is_cache_fresh(),
+            "cache_fresh": is_cache_fresh(),
         })
 
     except Exception as e:
         log.error(f"Error in /api/narratives: {e}")
-        return jsonify({"error": "Failed to load narrative data", "detail": str(e)}), 500
+
+        return jsonify({
+            "error": "Failed to load narrative data",
+            "detail": str(e)
+        }), 500
 
 
 @app.route("/api/narratives/<string:name>", methods=["GET"])
 def get_narrative_detail(name: str):
-    """Returns detail for a single narrative by name (case-insensitive)."""
+
     try:
         narratives = refresh_narratives()
+
         match = next(
             (n for n in narratives if n["name"].lower() == name.lower()),
             None
         )
+
         if not match:
             return jsonify({"error": f"Narrative '{name}' not found"}), 404
+
         return jsonify(match)
 
     except Exception as e:
@@ -153,19 +146,38 @@ def get_narrative_detail(name: str):
 
 @app.route("/api/status", methods=["GET"])
 def cache_status():
-    """Returns cache metadata — useful for debugging."""
+
     return jsonify({
-        "cache_fresh":      is_cache_fresh(),
-        "last_updated":     _cache["last_updated"].isoformat() if _cache["last_updated"] else None,
-        "narrative_count":  len(_cache["narratives"]),
-        "source":           _cache.get("source"),
+        "cache_fresh": is_cache_fresh(),
+        "last_updated": _cache["last_updated"].isoformat() if _cache["last_updated"] else None,
+        "narrative_count": len(_cache["narratives"]),
+        "source": _cache.get("source"),
     })
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+def start_telegram_bot():
+
+    try:
+        log.info("Starting Narratex Telegram bot thread")
+
+        thread = threading.Thread(target=run_bot)
+        thread.daemon = True
+        thread.start()
+
+    except Exception as e:
+        log.error(f"Failed to start Telegram bot: {e}")
+
+
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
+
+    start_telegram_bot()
+
     log.info(f"Starting Narratex API on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=False)
+
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=False
+  )

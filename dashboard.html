@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Narratex — Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="narratex_icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -31,7 +32,25 @@
   <header class="topbar">
     <div class="topbar-left">
       <a href="index.html" class="topbar-logo">
-        <div class="logo-hex"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="28" height="28" style="flex-shrink:0">
+          <defs>
+            <linearGradient id="dg1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#f0b90b"/>
+              <stop offset="100%" style="stop-color:#d4a008"/>
+            </linearGradient>
+            <linearGradient id="dg2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1a1400"/>
+              <stop offset="100%" style="stop-color:#000000"/>
+            </linearGradient>
+          </defs>
+          <rect width="80" height="80" fill="#000" rx="12"/>
+          <polygon points="40,4 68,20 68,60 40,76 12,60 12,20" fill="none" stroke="url(#dg1)" stroke-width="2"/>
+          <polygon points="40,10 64,24 64,56 40,70 16,56 16,24" fill="url(#dg1)"/>
+          <polygon points="40,20 58,30 58,50 40,60 22,50 22,30" fill="url(#dg2)"/>
+          <line x1="30" y1="34" x2="50" y2="34" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="40" x2="53" y2="40" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="30" y1="46" x2="50" y2="46" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+        </svg>
         <span class="logo-name">NARRATEX</span>
       </a>
       <div class="topbar-divider"></div>
@@ -191,4 +210,5 @@
 
   <script src="dashboard.js"></script>
 </body>
-</html>
+            </html>
+  

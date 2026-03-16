@@ -417,6 +417,7 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 import threading
+import asyncio
 from flask import Flask as FlaskApp
 
 health_app = FlaskApp(__name__)
@@ -425,22 +426,11 @@ health_app = FlaskApp(__name__)
 def health():
     return {"service": "narratex-bot", "status": "running"}, 200
 
-def run_health_server():
-    port = int(os.environ.get("PORT", 8080))
-    health_app.run(host="0.0.0.0", port=port)
 
-# ── Main ─────────────────────────────────────────────────────────────────────
-def main():
-    if not TELEGRAM_TOKEN:
-        log.error("TELEGRAM_TOKEN environment variable not set")
-        return
-
-    log.info("Starting Narratex Telegram Bot...")
-
-    # Run Flask health check in background thread so Render is satisfied
-    t = threading.Thread(target=run_health_server, daemon=True)
-    t.start()
-    log.info("Health server started")
+def run_bot_polling():
+    """Run the Telegram bot in its own thread with its own event loop."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     tg_app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -453,13 +443,32 @@ def main():
     tg_app.add_handler(CommandHandler("refresh",     cmd_refresh))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    log.info("Bot polling for messages...")
+    log.info("Bot polling started")
     tg_app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
+# ── Main ─────────────────────────────────────────────────────────────────────
+def main():
+    if not TELEGRAM_TOKEN:
+        log.error("TELEGRAM_TOKEN environment variable not set")
+        return
+
+    log.info("Starting Narratex Bot...")
+
+    # Start bot polling in background thread with its own event loop
+    bot_thread = threading.Thread(target=run_bot_polling, daemon=True)
+    bot_thread.start()
+
+    # Run Flask health server in main thread — satisfies Render web service check
+    port = int(os.environ.get("PORT", 8080))
+    log.info(f"Health server on port {port}")
+    health_app.run(host="0.0.0.0", port=port, use_reloader=False)
+
+
 if __name__ == "__main__":
     main()
 
 
 if __name__ == "__main__":
     main()
+          

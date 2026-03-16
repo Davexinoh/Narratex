@@ -1,0 +1,29 @@
+services:
+  # ── Narratex API (web service) ──────────────────────────────────────────
+  - type: web
+    name: narratex
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    # Single worker required — in-memory cache breaks with multiple workers
+    startCommand: cd backend && gunicorn api:app --bind 0.0.0.0:$PORT --workers 1 --timeout 60
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+    autoDeploy: true
+
+  # ── Narratex Telegram Bot (background worker) ───────────────────────────
+  - type: worker
+    name: narratex-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: NARRATEX_API
+        value: https://narratex.onrender.com/api/narratives
+      - key: ANTHROPIC_API_KEY
+        sync: false
+    autoDeploy: true

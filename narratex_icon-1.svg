@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f0b90b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d4a008;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="innerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1400;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="80" height="80" fill="#000000" rx="14"/>
+
+  <!-- Outer hexagon ring -->
+  <polygon
+    points="40,4 68,20 68,60 40,76 12,60 12,20"
+    fill="none"
+    stroke="url(#goldGrad)"
+    stroke-width="2"
+    filter="url(#glow)"
+  />
+
+  <!-- Gold filled hexagon -->
+  <polygon
+    points="40,10 64,24 64,56 40,70 16,56 16,24"
+    fill="url(#goldGrad)"
+  />
+
+  <!-- Dark inner hexagon -->
+  <polygon
+    points="40,20 58,30 58,50 40,60 22,50 22,30"
+    fill="url(#innerGrad)"
+  />
+
+  <!-- Signal bars -->
+  <line x1="30" y1="34" x2="50" y2="34" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="1"/>
+  <line x1="27" y1="40" x2="53" y2="40" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  <line x1="30" y1="46" x2="50" y2="46" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+
+</svg>

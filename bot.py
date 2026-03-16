@@ -416,30 +416,31 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
 
 
-# ── Main — Webhook mode for Render free web service ──────────────────────────
-#
-# Render free tier only supports web services, not background workers.
-# Webhook mode lets the bot run as a web service — Telegram pushes
-# updates to our URL instead of us polling Telegram continuously.
-#
-# Required env vars:
-#   TELEGRAM_TOKEN     — from BotFather
-#   RENDER_EXTERNAL_URL — set automatically by Render (e.g. https://narratex-bot.onrender.com)
-#   ANTHROPIC_API_KEY  — optional, enables AI chat responses
-#   PORT               — set automatically by Render
+import threading
+from flask import Flask as FlaskApp
 
+health_app = FlaskApp(__name__)
+
+@health_app.route("/")
+def health():
+    return {"service": "narratex-bot", "status": "running"}, 200
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    health_app.run(host="0.0.0.0", port=port)
+
+# ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     if not TELEGRAM_TOKEN:
         log.error("TELEGRAM_TOKEN environment variable not set")
         return
 
-    port          = int(os.environ.get("PORT", 8443))
-    render_url    = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
-    webhook_path  = f"/webhook/{TELEGRAM_TOKEN}"
-    webhook_url   = f"{render_url}{webhook_path}"
+    log.info("Starting Narratex Telegram Bot...")
 
-    log.info(f"Starting Narratex Bot in webhook mode on port {port}")
-    log.info(f"Webhook URL: {webhook_url}")
+    # Run Flask health check in background thread so Render is satisfied
+    t = threading.Thread(target=run_health_server, daemon=True)
+    t.start()
+    log.info("Health server started")
 
     tg_app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -452,16 +453,13 @@ def main():
     tg_app.add_handler(CommandHandler("refresh",     cmd_refresh))
     tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Run webhook — Render provides the HTTPS URL automatically
-    tg_app.run_webhook(
-        listen="0.0.0.0",
-        port=port,
-        url_path=webhook_path,
-        webhook_url=webhook_url,
-        allowed_updates=Update.ALL_TYPES,
-    )
+    log.info("Bot polling for messages...")
+    tg_app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
     main()
-      
+
+
+if __name__ == "__main__":
+    main()

@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 # ── Config ──────────────────────────────────────────────────────────────────
 TELEGRAM_TOKEN  = os.environ.get("TELEGRAM_TOKEN", "")
 NARRATEX_API    = os.environ.get("NARRATEX_API", "https://narratex.onrender.com/api/narratives")
-ANTHROPIC_KEY   = os.environ.get("ANTHROPIC_API_KEY", "")
+GROQ_KEY        = os.environ.get("GROQ_API_KEY", "")
 
 # ── Seed fallback ────────────────────────────────────────────────────────────
 SEED = [
@@ -95,10 +95,12 @@ def source_label(source):
 def now_utc():
     return datetime.now(timezone.utc).strftime("%H:%M UTC · %b %d")
 
-# ── AI response via Claude ───────────────────────────────────────────────────
-def ask_claude(question, narratives):
-    """Call Claude API with narrative context to answer user questions."""
-    if not ANTHROPIC_KEY:
+# ── AI response via Groq ─────────────────────────────────────────────────────
+def ask_groq(question, narratives):
+    """Call Groq API with narrative context to answer user questions.
+    Groq is free — get a key at console.groq.com
+    """
+    if not GROQ_KEY:
         return None
 
     system = f"""You are Narratex, an elite crypto narrative intelligence agent powered by Binance Square.
@@ -116,28 +118,29 @@ Rules:
 
     try:
         resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": ANTHROPIC_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json",
             },
             json={
-                "model": "claude-sonnet-4-6",
+                "model": "llama-3.3-70b-versatile",
                 "max_tokens": 1000,
-                "system": system,
-                "messages": [{"role": "user", "content": question}]
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user",   "content": question}
+                ]
             },
             timeout=20
         )
         resp.raise_for_status()
         data = resp.json()
-        return data["content"][0]["text"]
+        return data["choices"][0]["message"]["content"]
     except requests.exceptions.HTTPError as e:
-        log.error(f"Claude API HTTP error: {e.response.status_code} — {e.response.text}")
+        log.error(f"Groq API HTTP error: {e.response.status_code} — {e.response.text}")
         return None
     except Exception as e:
-        log.error(f"Claude API failed: {type(e).__name__}: {e}")
+        log.error(f"Groq API failed: {type(e).__name__}: {e}")
         return None
 
 # ── Command handlers ─────────────────────────────────────────────────────────
@@ -385,7 +388,7 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     narratives, source = fetch_narratives()
 
     # Try Claude first
-    reply = ask_claude(text, narratives)
+    reply = ask_groq(text, narratives)
 
     if not reply:
         # Fallback: keyword routing

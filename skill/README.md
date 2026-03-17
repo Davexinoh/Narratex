@@ -20,23 +20,23 @@ Ask your OpenClaw agent:
 And get back a live intelligence briefing like:
 
 ```
-📡 NARRATEX INTELLIGENCE BRIEFING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ NARRATEX INTELLIGENCE BRIEFING
 
-🟢 LIVE — NARRATEX API
+
+ LIVE — NARRATEX API
 Updated: 09:15 UTC · Mar 14
 
 TOP NARRATIVES
 
-1. AI Infrastructure           ████████ 84%  ↑ RISING
+1. AI Infrastructure           84%  ↑ RISING
    Tokens: FET · TAO · RNDR · AKT · WLD
    Mentions +91% · Engagement +88%
 
-2. Solana Ecosystem            ███████░ 79%  ▲ PEAK
+2. Solana Ecosystem            79%  ▲ PEAK
    Tokens: SOL · JUP · RAY · BONK · PYTH
    Mentions +86% · Engagement +82%
 
-3. Bitcoin Ecosystem           ███████░ 76%  ▲ PEAK
+3. Bitcoin Ecosystem           76%  ▲ PEAK
    Tokens: STX · ORDI · SATS · RUNE · WBTC
    Mentions +84% · Engagement +79%
 ```

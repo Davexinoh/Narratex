@@ -1,4 +1,4 @@
----
+cd cd---
 name: narratex
 version: 1.0.0
 description: Crypto narrative intelligence powered by Binance Square. Detects emerging market narratives, scores momentum, and identifies trending tokens before they go mainstream.
@@ -62,42 +62,39 @@ This returns a JSON array of narratives with confidence scores, signal breakdown
 Format the response as a crisp intelligence briefing. Example:
 
 ```
-📡 NARRATEX INTELLIGENCE BRIEFING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ NARRATEX INTELLIGENCE BRIEFING
 
-🔴 BINANCE SQUARE — LIVE SCAN
+ BINANCE SQUARE — LIVE SCAN
 Updated: [timestamp]
 
 TOP NARRATIVES
 
-1. AI Infrastructure          ████████ 84%  ↑ RISING
+1. AI Infrastructure 84%  ↑ RISING
    Tokens: FET · TAO · RNDR · AKT
    Mentions +91% · Engagement +88%
 
-2. Solana Ecosystem           ███████  79%  ▲ PEAK
+2. Solana Ecosystem  79%  ▲ PEAK
    Tokens: SOL · JUP · RAY · BONK
    Mentions +86% · Engagement +82%
 
-3. Bitcoin Ecosystem          ███████  76%  ▲ PEAK
+3. Bitcoin Ecosystem 76%  ▲ PEAK
    Tokens: STX · ORDI · SATS · RUNE
    Mentions +84% · Engagement +79%
 
-4. DeFi Resurgence            ██████   71%  ↑ RISING
+4. DeFi Resurgence 71%  ↑ RISING
    Tokens: AAVE · UNI · CRV · GMX
    Mentions +77% · Engagement +72%
 
-5. DePIN Compute              ██████   67%  ↗ EMERGING
+5. DePIN Compute 67%  ↗ EMERGING
    Tokens: HNT · IOTX · FIL · AKT
    Mentions +71% · Engagement +65%
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LIFECYCLE STAGES
   ↗ EMERGING   DePIN Compute · RWA Tokenization
   ↑  RISING    AI Infrastructure · DeFi Resurgence
   ▲  PEAK      Solana Ecosystem · Bitcoin Ecosystem
   ↘ DECLINING  Gaming Infrastructure · Layer 2 Scaling
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🔗 Full dashboard: https://davexinoh.github.io/Narratex/dashboard.html
 ```
 
@@ -114,7 +111,6 @@ Use the narrative data fetched in Step 1 to answer. Do not re-fetch unless the u
 ## Commands the User Can Give You
 
 | Command | What to do |
-|---------|-----------|
 | `narratex` or `narrative briefing` | Full briefing |
 | `top narratives` | Top 3 by confidence |
 | `show [narrative name]` | Detail on one narrative |
@@ -133,7 +129,7 @@ Use the narrative data fetched in Step 1 to answer. Do not re-fetch unless the u
 
 If the fetch script fails or returns no data, respond with:
 ```
-⚠️ Narratex is warming up (Render cold start ~30s).
+Narratex is warming up (Render cold start ~30s).
 Here's the latest cached intelligence:
 [use SEED_DATA below]
 ```

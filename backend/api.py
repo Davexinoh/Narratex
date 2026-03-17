@@ -149,7 +149,7 @@ def get_narrative_detail(name: str):
     except Exception as e:
         log.error(f"Error in /api/narratives/{name}: {e}")
         return jsonify({"error": str(e)}), 500
-
+cd
 
 @app.route("/api/status", methods=["GET"])
 def cache_status():

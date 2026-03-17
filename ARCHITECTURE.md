@@ -37,7 +37,7 @@ Each signal is normalized to 0–100 before weighting.
 ## API Endpoints
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+
 | GET | `/` | Health check |
 | GET | `/api/narratives` | All narratives, sorted by confidence |
 | GET | `/api/narratives/:name` | Single narrative detail |
@@ -59,7 +59,6 @@ Query params on `/api/narratives`:
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
 | Frontend | HTML, CSS, JavaScript, Chart.js |
 | Backend | Python 3.11, Flask, Gunicorn |
 | Data source | Binance Square public feed |

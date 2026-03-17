@@ -1,12 +1,31 @@
 services:
+  # ── Narratex API (web service) ──────────────────────────────────────────
   - type: web
     name: narratex
     runtime: python
     buildCommand: pip install -r requirements.txt
-    # workers 1 is intentional — the in-memory cache in api.py
-    # requires a single process. Multiple workers = separate cache dicts.
+    # Single worker required — in-memory cache breaks with multiple workers
     startCommand: cd backend && gunicorn api:app --bind 0.0.0.0:$PORT --workers 1 --timeout 60
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+    autoDeploy: true
+
+  # ── Narratex Telegram Bot (web service — webhook mode) ──────────────────
+  # Runs as a free web service. Telegram pushes updates via webhook.
+  # RENDER_EXTERNAL_URL is set automatically by Render.
+  - type: web
+    name: narratex-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: NARRATEX_API
+        value: https://narratex.onrender.com/api/narratives
+      - key: TELEGRAM_TOKEN
+        sync: false        # Add manually in Render dashboard — never commit token
+      - key: ANTHROPIC_API_KEY
+        sync: false        # Add manually in Render dashboard
     autoDeploy: true

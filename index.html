@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Narratex — Discover Market Narratives Before They Trend</title>
+  <link rel="icon" type="image/svg+xml" href="narratex_icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -238,7 +239,25 @@
   <div class="scene">
     <nav>
       <div class="nav-logo">
-        <div class="nav-mark"></div>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="36" height="36">
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#f0b90b"/>
+              <stop offset="100%" style="stop-color:#d4a008"/>
+            </linearGradient>
+            <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" style="stop-color:#1a1400"/>
+              <stop offset="100%" style="stop-color:#000000"/>
+            </linearGradient>
+          </defs>
+          <rect width="80" height="80" fill="#000" rx="12"/>
+          <polygon points="40,4 68,20 68,60 40,76 12,60 12,20" fill="none" stroke="url(#g1)" stroke-width="2"/>
+          <polygon points="40,10 64,24 64,56 40,70 16,56 16,24" fill="url(#g1)"/>
+          <polygon points="40,20 58,30 58,50 40,60 22,50 22,30" fill="url(#g2)"/>
+          <line x1="30" y1="34" x2="50" y2="34" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="27" y1="40" x2="53" y2="40" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+          <line x1="30" y1="46" x2="50" y2="46" stroke="#f0b90b" stroke-width="2.5" stroke-linecap="round" opacity="0.4"/>
+        </svg>
         <span class="nav-name">NARRATEX</span>
       </div>
       <span class="nav-tag">Narrative Intelligence</span>
@@ -258,8 +277,7 @@
       </p>
 
       <div class="ticker-wrap">
-        <div class="ticker" id="ticker-track">
-          <!-- Populated by live API — seed data shown while loading -->
+        <div class="ticker">
           <span class="ticker-item hot">↑ AI Infrastructure · 84%</span>
           <span class="ticker-item hot">↑ Solana Ecosystem · 79%</span>
           <span class="ticker-item">Bitcoin Ecosystem · 76%</span>
@@ -293,23 +311,6 @@
       <span>Built by Davexinoh</span>
     </div>
   </div>
-  <script>
-    // Wire ticker to live API — falls back to seed data (already in HTML) if API is cold
-    const NARRATEX_API = "https://narratex.onrender.com/api/narratives";
-    fetch(NARRATEX_API)
-      .then(r => r.json())
-      .then(data => {
-        if (!data.narratives || !data.narratives.length) return;
-        const track = document.getElementById("ticker-track");
-        // Duplicate the list for seamless infinite scroll
-        const items = [...data.narratives, ...data.narratives];
-        track.innerHTML = items.map(n => {
-          const hot   = n.confidence >= 70;
-          const arrow = hot ? "↑ " : "";
-          return `<span class="ticker-item ${hot ? "hot" : ""}">${arrow}${n.name} · ${n.confidence}%</span>`;
-        }).join("");
-      })
-      .catch(() => {}); // silently keep seed data on failure
-  </script>
 </body>
-</html>
+  </html>
+  

@@ -3,10 +3,10 @@ api.py
 Narratex — Flask API
 
 Endpoints:
-  GET  /                       Health check
-  GET  /api/narratives         Full narrative intelligence output
-  GET  /api/narratives/<name>  Single narrative detail
-  GET  /api/status             Cache metadata
+  GET  /                      Health check
+  GET  /api/narratives        Full narrative intelligence output
+  GET  /api/narratives/<name> Single narrative detail
+  GET  /api/status            Cache metadata
 """
 
 import logging
@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Lock CORS to the actual frontend origins only
+# Lock CORS to specific origins only — never open wildcard in production
 CORS(app, origins=[
     "https://davexinoh.github.io",
     "http://localhost:5500",
@@ -40,9 +40,11 @@ CORS(app, origins=[
 
 # ---------------------------------------------------------------------------
 # In-memory cache
+#
 # NOTE: render.yaml must use --workers 1 for this to work correctly.
 # Multiple workers = multiple processes = separate cache dicts.
 # ---------------------------------------------------------------------------
+
 _cache: dict = {
     "narratives":   [],
     "last_updated": None,
@@ -58,7 +60,7 @@ def is_cache_fresh() -> bool:
     return delta < CACHE_TTL_SECONDS
 
 
-def refresh_narratives(force: bool = False) -> list[dict]:
+def refresh_narratives(force: bool = False) -> list:
     """
     Runs the full pipeline: collect → extract → score.
     Uses cache if still fresh unless force=True.
@@ -155,17 +157,19 @@ cd
 def cache_status():
     """Returns cache metadata — useful for debugging."""
     return jsonify({
-        "cache_fresh":      is_cache_fresh(),
-        "last_updated":     _cache["last_updated"].isoformat() if _cache["last_updated"] else None,
-        "narrative_count":  len(_cache["narratives"]),
-        "source":           _cache.get("source"),
+        "cache_fresh":     is_cache_fresh(),
+        "last_updated":    _cache["last_updated"].isoformat() if _cache["last_updated"] else None,
+        "narrative_count": len(_cache["narratives"]),
+        "source":          _cache.get("source"),
     })
 
 
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     log.info(f"Starting Narratex API on port {port}")
     app.run(host="0.0.0.0", port=port, debug=False)
+    
